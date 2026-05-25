@@ -1,3 +1,4 @@
+import React from 'react';
 import { useDiagramStore } from '../store/diagramStore';
 
 const BINARY_UI = {
@@ -36,7 +37,7 @@ const BINARY_UI = {
 };
 
 // =========================================================================
-// 🛠️ MINI DATA POPUP COMPONENT (Fixed value render)
+// 🛠️ MINI DATA POPUP COMPONENT
 // =========================================================================
 const MiniPopup = ({ label, value }) => (
   <div className="bg-slate-900/95 border border-blue-500 text-blue-400 px-2 py-1 rounded shadow-lg shadow-blue-500/30 backdrop-blur-sm text-[11px] font-mono pointer-events-none inline-block w-fit whitespace-nowrap">
@@ -48,6 +49,9 @@ const MiniPopup = ({ label, value }) => (
 // =========================================================================
 // 🛠️ SHARED LOGIC HOOK
 // =========================================================================
+// =========================================================================
+// 🛠️ SHARED LOGIC HOOK (UPDATED FOR ANSWER KEY - ESLINT FIX)
+// =========================================================================
 const useWireLogic = (id, type) => {
   const { 
     activeWires = [], 
@@ -55,26 +59,59 @@ const useWireLogic = (id, type) => {
     interactionMode, 
     userSelectedWires = [], 
     toggleUserWire,
-    theme 
+    theme,
+    showAnswerKey,          
+    verificationState       
   } = useDiagramStore();
 
   const isDataActive = activeWires.includes(id);
   const isCtrlActive = activeControlWires.includes(id);
   const isUserSelected = userSelectedWires.includes(id);
 
-  const isActive = interactionMode === 'practice_click' ? isUserSelected : (isDataActive || isCtrlActive);
+  // FIX: Just declare the variable without assigning a useless initial value
+  let isActive; 
+  let activeColor = '#38bdf8'; // Default Explore Blue
+
+  if (interactionMode === 'practice_click') {
+    // ---------------------------------------------------
+    // PRACTICE MODE: SHOW ANSWER KEY LOGIC
+    // ---------------------------------------------------
+    if (showAnswerKey && verificationState?.correctWires) {
+      const isCorrectWire = verificationState.correctWires.includes(id);
+      
+      if (isCorrectWire) {
+        // Wire was supposed to be clicked -> Make it GREEN
+        isActive = true;
+        activeColor = '#10b981'; // Emerald 
+      } else if (isUserSelected && !isCorrectWire) {
+        // User clicked it, but it's wrong -> Make it RED
+        isActive = true;
+        activeColor = '#ef4444'; // Rose
+      } else {
+        isActive = false;
+      }
+    } 
+    // ---------------------------------------------------
+    // PRACTICE MODE: NORMAL SELECTION
+    // ---------------------------------------------------
+    else {
+      isActive = isUserSelected;
+      activeColor = '#a855f7'; // Purple for normal selection
+    }
+  } else {
+    // ---------------------------------------------------
+    // EXPLORE MODE LOGIC
+    // ---------------------------------------------------
+    isActive = isDataActive || isCtrlActive;
+    if (isCtrlActive) activeColor = '#ef4444'; // Red for control wires
+  }
 
   const hasAnyActive = interactionMode === 'practice_click' 
-    ? userSelectedWires.length > 0 
+    ? (showAnswerKey ? true : userSelectedWires.length > 0) 
     : (activeWires.length > 0 || activeControlWires.length > 0);
-
-  let activeColor = '#38bdf8'; 
-  if (interactionMode === 'practice_click') activeColor = '#a855f7'; 
-  else if (isCtrlActive) activeColor = '#ef4444'; 
   
   const inactiveColor = theme === 'dark' ? '#475569' : '#cbd5e1'; 
-
-  const currentOpacity = isActive ? 1 : (hasAnyActive ? 0.5 : 1);
+  const currentOpacity = isActive ? 1 : (hasAnyActive ? 0.3 : 1); 
 
   const style = type === 'stroke' 
     ? { stroke: isActive ? activeColor : inactiveColor, opacity: currentOpacity }
@@ -85,12 +122,12 @@ const useWireLogic = (id, type) => {
     : `transition-all duration-300 ${isActive ? 'svg-highlight' : ''}`;
 
   const handleClick = () => {
-    if (interactionMode === 'practice_click') {
+    // Disable clicking if the answer key is currently showing
+    if (interactionMode === 'practice_click' && !showAnswerKey) {
       toggleUserWire(id);
-    } else {
+    } else if (interactionMode !== 'practice_click') {
       console.log(`Clicked wire: '${id}'`);
       navigator.clipboard.writeText(`'${id}'`);
-      alert(`Copied '${id}' to clipboard!`);
     }
   };
 
@@ -134,7 +171,13 @@ export default function DiagramCanvas() {
     interactionMode,
     activeInstruction,
     theme,
-    currentCycle
+    currentCycle,
+    
+    // NEW: Added Practice Mode States
+    practiceInput,
+    practiceMachineCode,
+    setPracticeMachineCode,
+    verificationState
   } = useDiagramStore();
 
   const isSimulating = activeWires.length > 0 || activeControlWires.length > 0;
@@ -159,8 +202,6 @@ export default function DiagramCanvas() {
   const textStyle = { pointerEvents: 'none', userSelect: 'none', fill: theme === 'dark' ? '#0f172a' : '#0f172a' };
   const textClass = "font-bold font-sans";
 
-  const binaryBlocks = activeInstruction ? BINARY_UI[activeInstruction] : [];
-
   const getBlockColor = (color) => {
     const maps = {
       dark: { sky: 'bg-sky-900/50 text-sky-300 border-sky-700/50', emerald: 'bg-emerald-900/50 text-emerald-300 border-emerald-700/50', purple: 'bg-purple-900/50 text-purple-300 border-purple-700/50', amber: 'bg-amber-900/50 text-amber-300 border-amber-700/50', slate: 'bg-slate-800/50 text-slate-300 border-slate-600/50', rose: 'bg-rose-900/50 text-rose-300 border-rose-700/50', pink: 'bg-pink-900/50 text-pink-300 border-pink-700/50', blue: 'bg-blue-900/50 text-blue-300 border-blue-700/50', orange: 'bg-orange-900/50 text-orange-300 border-orange-700/50' },
@@ -169,27 +210,120 @@ export default function DiagramCanvas() {
     return maps[theme][color];
   };
 
+  // =========================================================================
+  // 🧩 DYNAMIC BINARY LOGIC
+  // =========================================================================
+  
+  // 1. Determine which opcode layout to show (Explore vs Practice)
+  let displayOpcode = activeInstruction;
+  if (isPractice) {
+     const parts = (practiceInput || '').trim().split(' ');
+     displayOpcode = parts.length > 0 && BINARY_UI[parts[0].toLowerCase()] ? parts[0].toLowerCase() : null;
+  }
+  
+  const binaryBlocks = displayOpcode ? BINARY_UI[displayOpcode] : [];
+  
+  // 2. Split the store's machine code into an array for the individual inputs
+  const machineCodeSegments = (practiceMachineCode || '').split(' ');
+
+  // 3. Update the specific segment in the store when typed
+  const handleSegmentChange = (index, value) => {
+      // Only allow binary digits (or x/X if you want to let them type placeholders)
+      const cleanValue = value.replace(/[^01xX]/g, '');
+      let newSegments = [...machineCodeSegments];
+      
+      // Ensure array is properly sized
+      while(newSegments.length < binaryBlocks.length) newSegments.push('');
+      
+      newSegments[index] = cleanValue;
+      if (setPracticeMachineCode) setPracticeMachineCode(newSegments.join(' '));
+  };
+
   return (
     <div className={`flex-1 flex flex-col justify-start items-center overflow-auto relative transition-colors duration-300 ${theme === 'dark' ? 'bg-slate-950' : 'bg-slate-50'}`}>
       
-      <div className={`w-full border-b p-4 flex justify-center z-20 h-24 items-center transition-colors duration-300 ${theme === 'dark' ? 'bg-slate-900 border-slate-800 shadow-md' : 'bg-white border-slate-200 shadow-sm'}`}>
+      {/* 🚀 UPGRADED TOP BAR WITH INTERACTIVE SEGMENTS */}
+      <div className={`w-full border-b p-4 flex flex-col justify-center items-center z-20 min-h-[6rem] relative transition-colors duration-300 ${theme === 'dark' ? 'bg-slate-900 border-slate-800 shadow-md' : 'bg-white border-slate-200 shadow-sm'}`}>
+        
         {binaryBlocks.length > 0 ? (
-          <div className="flex gap-2 text-center font-mono">
-            {binaryBlocks.map((block, i) => (
-              <div key={i} className="flex flex-col">
-                <span className={`px-3 py-2 rounded-t border text-lg tracking-widest ${getBlockColor(block.color)}`}>{block.bits}</span>
-                <span className={`text-xs py-1 rounded-b ${theme === 'dark' ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500 border border-t-0 border-slate-200'}`}>{block.label}</span>
-              </div>
-            ))}
+          <div className="flex gap-2 text-center font-mono relative">
+            {binaryBlocks.map((block, i) => {
+              
+              // Hide the template 'X's so the placeholder '0's show up perfectly
+              const segmentValue = machineCodeSegments[i] || '';
+              const displayValue = /^[xX]+$/.test(segmentValue) ? '' : segmentValue;
+              
+              return (
+                <div key={i} className="flex flex-col relative">
+                  {isPractice ? (
+                     <input 
+                       type="text"
+                       maxLength={block.bits.length}
+                       placeholder={'0'.repeat(block.bits.length)}
+                       value={displayValue} 
+                       onChange={(e) => handleSegmentChange(i, e.target.value)}
+                       className={`px-1 py-2 rounded-t border text-lg tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ${getBlockColor(block.color)} ${verificationState?.machineCode === false ? 'border-rose-500 shadow-[0_0_5px_rgba(244,63,94,0.3)]' : ''}`}
+                       style={{ width: `${Math.max(block.bits.length * 1.1 + 1, 3.5)}rem` }}
+                     />
+                  ) : (
+                     <span className={`px-3 py-2 rounded-t border text-lg tracking-widest ${getBlockColor(block.color)}`}>
+                       {block.bits}
+                     </span>
+                  )}
+                  <span className={`text-xs py-1 rounded-b ${theme === 'dark' ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500 border border-t-0 border-slate-200'}`}>
+                    {block.label}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         ) : (
-           <span className={`italic ${theme === 'dark' ? 'text-slate-600' : 'text-slate-400'}`}>Select an instruction to view binary breakdown.</span>
+           <span className={`italic ${theme === 'dark' ? 'text-slate-600' : 'text-slate-400'}`}>
+             {isPractice ? 'Enter a valid instruction on the left to build the machine code.' : 'Select an instruction to view binary breakdown.'}
+           </span>
         )}
+
+        {isPractice && verificationState?.machineCode === false && (
+   <div className={`absolute -bottom-6 left-1/2 transform -translate-x-1/2 px-5 py-1.5 rounded-full border shadow-lg z-30 flex items-center gap-3 transition-all duration-300 animate-in slide-in-from-top-2 ${
+     theme === 'dark' 
+       ? 'bg-rose-950/90 border-rose-500/50 text-rose-200 shadow-[0_4px_20px_rgba(225,29,72,0.3)] backdrop-blur-md' 
+       : 'bg-white border-rose-300 text-rose-700 shadow-[0_4px_20px_rgba(225,29,72,0.15)]'
+   }`}>
+     
+     {/* Red 'X' Icon */}
+     <div className={`flex h-5 w-5 items-center justify-center rounded-full ${theme === 'dark' ? 'bg-rose-500/20 text-rose-400' : 'bg-rose-100 text-rose-600'}`}>
+       <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
+       </svg>
+     </div>
+     
+     <div className="flex items-baseline gap-2">
+       <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Expected:</span>
+       <span className="font-mono text-[13px] tracking-widest font-bold">
+         {/* Helper function to auto-add spaces to match the blocks exactly! */}
+         {(() => {
+           let raw = verificationState.correctMachineCode || '';
+           if (!raw.includes(' ') && binaryBlocks.length > 0) {
+             let formatted = [];
+             let curr = 0;
+             binaryBlocks.forEach(b => {
+               formatted.push(raw.substring(curr, curr + b.bits.length));
+               curr += b.bits.length;
+             });
+             return formatted.join(' ');
+           }
+           return raw;
+         })()}
+       </span>
+     </div>
+   </div>
+)}
       </div>
 
       <div className="flex-1 flex justify-center items-center p-8">
         <svg width="1100" height="631" viewBox="0 0 1100 631" fill="none" xmlns="http://www.w3.org/2000/svg" className="max-w-full h-auto">
           
+          {/* ... ALL OF YOUR EXISTING SVG AND WIRE CODE REMAINS EXACTLY THE SAME BELOW THIS LINE ... */}
           <g id="datapath_wires">
             <WirePath id="wire_1" type="fill" d="M37 383.768L27 377.995L27 389.542L37 383.768ZM14.0184 383.768L13.0184 383.768L13.0184 384.768L14.0184 384.768L14.0184 383.768ZM14.0184 1.00003L14.0184 2.55782e-05L13.0184 2.14608e-05L13.0184 1.00003L14.0184 1.00003ZM893.5 1.00003L894.5 1.00003L894.5 2.63759e-05L893.5 2.27786e-05L893.5 1.00003ZM893.5 72.9999L893.5 73.9999L894.5 73.9999L894.5 72.9999L893.5 72.9999ZM28 383.768L28 382.768L14.0183 382.768L14.0184 383.768L14.0184 384.768L28 384.768L28 383.768ZM14.0184 383.768L15.0184 383.768L15.0184 1.00004L14.0184 1.00003L13.0184 1.00003L13.0184 383.768L14.0184 383.768ZM14.0184 1.00003L14.0184 2.00004L893.5 2.00004L893.5 1.00003L893.5 2.27786e-05L14.0184 2.55782e-05L14.0184 1.00003ZM893.5 1.00003L892.5 1.00003L892.5 72.9999L893.5 72.9999L894.5 72.9999L894.5 1.00003L893.5 1.00003ZM893.5 72.9999L893.5 71.9999L875 71.9999L875 72.9999L875 73.9999L893.5 73.9999L893.5 72.9999Z" />
             <WirePath id="wire_2" type="fill" d="M132 374L122 368.226V379.773L132 374ZM79 374V375H123V374V373H79V374Z" />
@@ -231,10 +365,6 @@ export default function DiagramCanvas() {
             <WirePath id="wire_38" type="fill" d="M1056.99 425.5L1046.83 419.999L1047.15 431.542L1056.99 425.5ZM1019.99 426.5L1020.01 427.5L1048.02 426.743L1047.99 425.743L1047.96 424.744L1019.96 425.5L1019.99 426.5Z" />
           </g>
 
-          {/* =========================================
-              NEW: CYCLE-BASED FLOATING POPUPS
-              ========================================= */}
-          
           {/* ---------------- CYCLE 1: Instruction Decode & Register Read ---------------- */}
           {currentCycle >= 1 && (
             <>
@@ -361,7 +491,6 @@ export default function DiagramCanvas() {
           {/* =========================================
               THE COMPONENTS
               ========================================= */}
-          
           <g {...getGroupProps('registers')}>
             <rect x="410" y="342" width="168" height="169" fill="#D9D9D9"/>
             {hoveredComponent === 'registers' || forceDetails ? (

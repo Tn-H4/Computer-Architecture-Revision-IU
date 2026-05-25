@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; // <-- Import useEffect
+import React, { useState, useEffect } from 'react';
 import { useDiagramStore } from '../store/diagramStore';
 
 export default function InstructionPanel() {
@@ -6,39 +6,37 @@ export default function InstructionPanel() {
     activeInstruction, setActiveInstruction,
     clearWires, interactionMode, setInteractionMode,
     userSelectedWires, theme, toggleTheme,
-    verifyPracticeWires, practiceVerificationResult,
-    showAnswerKey, setShowAnswerKey // Assuming these are added to your diagramStore
+    // NEW: Destructure the practice states from your store
+    practiceInput, setPracticeInput, verifyPracticeSubmission,
+    setShowAnswerKey
   } = useDiagramStore();
 
-  // Local state for UI feedback if you prefer not to put this specific toggle in the store
   const [practiceChecked, setPracticeChecked] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [showKey, setShowKey] = useState(false);
 
+  // Reset UI when switching instructions or modes
   useEffect(() => {
     setPracticeChecked(false);
     setIsCorrect(false);
     setShowKey(false);
-  }, [activeInstruction]);
+    if (setShowAnswerKey) setShowAnswerKey(false);
+  }, [activeInstruction, interactionMode, setShowAnswerKey]);
 
-  const handleCheckAnswers = () => {
-    // In a real implementation, you'd call a store function:
-    // const result = verifyPracticeWires();
-    // setIsCorrect(result);
-    
-    // Placeholder logic for demonstration: Assumes it's wrong just to show the button
-    const correct = false; 
-    setPracticeChecked(true);
-    setIsCorrect(correct);
-    setShowKey(false); 
-    
-    // If you added setShowAnswerKey to zustand:
-    if (setShowAnswerKey) setShowAnswerKey(false); 
+const handleCheckAnswers = () => {
+    try {
+      const result = verifyPracticeSubmission(); 
+      setPracticeChecked(true);
+      setIsCorrect(result);
+      setShowKey(false); 
+      if (setShowAnswerKey) setShowAnswerKey(false); 
+    } catch (e) {
+      console.error("Crash on button click:", e);
+    }
   };
 
   const handleShowAnswerKey = () => {
     setShowKey(true);
-    // Trigger store update so Diagram can highlight the correct wires in green/red
     if (setShowAnswerKey) setShowAnswerKey(true);
   };
 
@@ -52,6 +50,48 @@ export default function InstructionPanel() {
 
   const handleModeChange = (mode) => {
     setInteractionMode(mode);
+    resetPractice();
+  };
+
+  // Helper to generate a completely random instruction dynamically
+  const handleRandomize = () => {
+    const opcodes = ['add', 'sub', 'addi', 'lw', 'sw', 'beq'];
+    // Standard MIPS registers for the generator to pick from
+    const destRegs = ['$s0', '$s1', '$s2', '$t0', '$t1', '$t2', '$a0', '$v0'];
+    const srcRegs = [...destRegs, '$zero']; // Source registers can include $zero
+
+    const getRandom = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    
+    const opcode = getRandom(opcodes);
+    let generatedInst = '';
+
+    switch (opcode) {
+      case 'add':
+      case 'sub': { // <-- Added curly braces
+        generatedInst = `${opcode} ${getRandom(destRegs)}, ${getRandom(srcRegs)}, ${getRandom(srcRegs)}`;
+        break;
+      }
+      case 'addi': { // <-- Added curly braces
+        const imm = Math.floor(Math.random() * 201) - 100; 
+        generatedInst = `${opcode} ${getRandom(destRegs)}, ${getRandom(srcRegs)}, ${imm}`;
+        break;
+      }
+      case 'lw':
+      case 'sw': { // <-- Added curly braces
+        const offset = Math.floor(Math.random() * 16) * 4; 
+        generatedInst = `${opcode} ${getRandom(destRegs)}, ${offset}(${getRandom(srcRegs)})`;
+        break;
+      }
+      case 'beq': { // <-- Added curly braces
+        const branchTarget = Math.floor(Math.random() * 25) + 1;
+        generatedInst = `beq ${getRandom(srcRegs)}, ${getRandom(srcRegs)}, ${branchTarget}`;
+        break;
+      }
+      default:
+        generatedInst = 'add $s0, $s1, $s2';
+    }
+
+    setPracticeInput(generatedInst);
     resetPractice();
   };
 
@@ -145,27 +185,66 @@ export default function InstructionPanel() {
       {interactionMode === 'practice_click' && (
         <div className="flex flex-col gap-3">
           <h2 className={`text-xl font-bold mb-2 border-b pb-2 ${theme === 'dark' ? 'text-white border-slate-700' : 'text-slate-800 border-slate-200'}`}>
-            Trace the Path
+            Custom Instruction
           </h2>
-          <p className={`text-sm mb-4 ${theme === 'dark' ? 'text-purple-300' : 'text-purple-700'}`}>
-            Click the wires on the diagram that would be active for the instruction.
+          
+          {/* NEW: Custom input field */}
+          <input 
+            type="text" 
+            placeholder="e.g. addi $s0, $t1, 100" 
+            value={practiceInput || ''}
+            onChange={(e) => {
+              setPracticeInput(e.target.value);
+              setPracticeChecked(false); // Reset check state when user types
+            }}
+            className={`border rounded p-2 text-sm font-mono w-full focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ${
+              theme === 'dark' ? 'bg-slate-900 border-slate-600 text-emerald-400' : 'bg-white border-slate-300 text-emerald-600'
+            }`}
+          />
+          
+          <button 
+            onClick={handleRandomize}
+            className={`text-xs py-2 rounded font-semibold transition-colors ${
+              theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+            }`}
+          >
+            Generate Random ✨
+          </button>
+
+          {/* Notice Block for Simulation Rules */}
+          <div className={`mt-4 p-3 rounded-lg text-xs shadow-inner border ${
+            theme === 'dark' 
+              ? 'bg-blue-900/20 border-blue-500/30 text-blue-300' 
+              : 'bg-blue-50 border-blue-200 text-blue-800'
+          }`}>
+            <p className="font-bold mb-1 flex items-center gap-1">ℹ️ Simulation Rules</p>
+            <ul className="list-disc pl-4 space-y-1">
+              <li>Registers hold their standard mapped value (e.g. <span className="font-mono font-bold">$s0 = 16</span>, <span className="font-mono font-bold">$t0 = 8</span>).</li>
+              <li>Memory read operations always load <span className="font-mono font-bold">2003</span>.</li>
+              <li>Unused data fields should be marked as <span className="font-mono font-bold">X</span>.</li>
+            </ul>
+          </div>
+
+          <p className={`text-sm mt-4 mb-2 ${theme === 'dark' ? 'text-purple-300' : 'text-purple-700'}`}>
+            Click the wires on the diagram that would be active for this instruction.
           </p>
           
           <div className={`border p-4 rounded-lg text-sm mb-4 ${theme === 'dark' ? 'bg-slate-950 border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'}`}>
             Wires Selected: <span className="font-bold text-purple-500">{userSelectedWires.length}</span>
           </div>
 
+          {/* VERIFICATION BUTTONS */}
           {!practiceChecked ? (
             <button 
               onClick={handleCheckAnswers}
               className="bg-purple-600 hover:bg-purple-500 text-white py-3 px-4 rounded-lg font-bold transition-all shadow-lg"
             >
-              Verify Selection
+              Verify Complete Answer
             </button>
           ) : (
             <div className="flex flex-col gap-3">
               <div className={`p-3 rounded-lg font-bold text-center ${isCorrect ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/50' : 'bg-rose-600/20 text-rose-400 border border-rose-500/50'}`}>
-                {isCorrect ? 'Correct Path Selected!' : 'Incorrect Wires Selected'}
+                {isCorrect ? 'Fully Correct!' : 'Something is incorrect.'}
               </div>
               
               {!isCorrect && !showKey && (

@@ -1,7 +1,5 @@
 import { create } from 'zustand';
-
-
-// Master list of all Control Signal Wires (Turns Red)
+import { parseInstruction, generateAnswerKey, getMachineCodeTemplate } from '../utils/instructionEngine';// Master list of all Control Signal Wires (Turns Red)
 const CONTROL_WIRES = [
   'wire_5', 'wire_23', 'wire_24', 'wire_25', 
   'wire_28', 'wire_29', 'wire_30', 'wire_31', 'wire_36'
@@ -95,6 +93,34 @@ export const useDiagramStore = create((set, get) => ({
   interactionMode: 'explore', 
   userSelectedWires: [],      
   activeInstruction: 'add', 
+  practiceInput: '',
+  practiceMachineCode: '',
+  showAnswerKey: false,
+  setShowAnswerKey: (val) => set({ showAnswerKey: val }),
+  setPracticeInput: (input) => {
+    set((state) => {
+      const newParsed = parseInstruction(input);
+      const oldParsed = parseInstruction(state.practiceInput);
+      
+      let newMachineCode = state.practiceMachineCode;
+
+      // If the instruction becomes valid, or changes type, reset the X template
+      if (newParsed && (!oldParsed || oldParsed.opcode !== newParsed.opcode)) {
+        newMachineCode = getMachineCodeTemplate(newParsed.opcode);
+      } else if (!input.trim()) {
+        newMachineCode = ''; // Clear if input is empty
+      }
+
+      return { 
+        practiceInput: input, 
+        practiceMachineCode: newMachineCode,
+        verificationState: null // Clear feedback when typing
+      };
+    });
+  },
+  setPracticeMachineCode: (code) => set({ practiceMachineCode: code }),
+
+  
 
   answers: emptyAnswers,
   setAnswers: (newAnswers) => set({ answers: newAnswers, verificationState: null }),
@@ -299,4 +325,104 @@ export const useDiagramStore = create((set, get) => ({
   },
   
   resetVerification: () => set({ verificationState: null }),
+
+// Update your verifyPracticeSubmission function:
+verifyPracticeSubmission: () => {
+    try {
+      const currentState = get();
+      
+      // Safety Check 1: Did the engine import correctly?
+      if (typeof parseInstruction !== 'function') {
+        alert("System Error: parseInstruction is missing. Check your imports at the top of diagramStore.js");
+        return false;
+      }
+
+      // Safety Check 2: Protect against undefined inputs
+      const parsed = parseInstruction(currentState.practiceInput || '');
+      if (!parsed) {
+        alert("Invalid instruction format. Please type a valid instruction first.");
+        return false;
+      }
+
+      const opcode = parsed.opcode;
+      const groundTruth = generateAnswerKey(parsed) || {}; // Fallback to empty object to prevent crashes
+
+      // 1. Verify Machine Code (Safely stringify and strip spaces)
+      const cleanUserMC = String(currentState.practiceMachineCode || '').replace(/\s/g, '').toUpperCase();
+      const cleanCorrectMC = String(groundTruth.machineCode || '').replace(/\s/g, '').toUpperCase();
+      const isMachineCodeCorrect = cleanUserMC === cleanCorrectMC && !cleanUserMC.includes('X');
+
+      // 2. Verify Diagram Wires safely
+      const sequences = INSTRUCTION_SEQUENCES[opcode] || {};
+      let correctWires = [];
+      Object.values(sequences).forEach(cycleWires => {
+        if (Array.isArray(cycleWires)) correctWires.push(...cycleWires);
+      });
+      
+      const uniqueCorrectWires = [...new Set(correctWires)].sort();
+      const uniqueUserWires = [...new Set(currentState.userSelectedWires || [])].sort();
+      const isWiresCorrect = JSON.stringify(uniqueUserWires) === JSON.stringify(uniqueCorrectWires);
+
+// 3. Verify Form Signals, Data Values, and Units (Sidebar)
+      let isFormCorrect = true;
+      const correctSignalsForm = {};
+      const correctDataForm = {};
+      const correctUnitsForm = {};
+      
+      const userAnswers = currentState.answers || {};
+
+      // Grade Signals
+      if (groundTruth.signals) {
+          Object.keys(groundTruth.signals).forEach(k => {
+             const isSignalRight = String(userAnswers.signals[k]).trim() === String(groundTruth.signals[k]).trim();
+             correctSignalsForm[k] = isSignalRight;
+             if (!isSignalRight) isFormCorrect = false;
+          });
+      }
+
+      // Grade Data Values (The Math)
+      if (groundTruth.dataValues) {
+          Object.keys(groundTruth.dataValues).forEach(k => {
+             const isDataRight = String(userAnswers.dataValues[k]).trim().toUpperCase() === String(groundTruth.dataValues[k]).toUpperCase();
+             correctDataForm[k] = isDataRight;
+             if (!isDataRight) isFormCorrect = false;
+          });
+      }
+
+      // Grade Functional Units
+      if (groundTruth.functionalUnits) {
+          Object.keys(groundTruth.functionalUnits).forEach(k => {
+             const isUnitRight = userAnswers.functionalUnits[k] === groundTruth.functionalUnits[k];
+             correctUnitsForm[k] = isUnitRight;
+             if (!isUnitRight) isFormCorrect = false;
+          });
+      }
+
+      const isFullyCorrect = isMachineCodeCorrect && isWiresCorrect && isFormCorrect;
+
+      // Update the state safely
+      set({
+         verificationState: {
+             machineCode: isMachineCodeCorrect,
+             correctMachineCode: groundTruth.machineCode || '',
+             signals: correctSignalsForm,
+             dataValues: correctDataForm,
+             functionalUnits: correctUnitsForm,
+             correctDataValues: groundTruth.dataValues, // Passed to Sidebar for answer key
+             correctSignals: groundTruth.signals,       // Passed to Sidebar for answer key
+             formCorrect: isFormCorrect,
+             wiresCorrect: isWiresCorrect,
+             correctWires: uniqueCorrectWires 
+         }
+      });
+
+      return isFullyCorrect;
+
+    } catch (error) {
+      // If ANYTHING fails, it logs the error instead of blanking your screen!
+      console.error("Verification crashed:", error);
+      alert("Verification failed. Please check the browser console (F12) for the exact error.");
+      return false;
+    }
+  },
 }));

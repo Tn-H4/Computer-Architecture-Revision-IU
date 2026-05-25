@@ -1,0 +1,38 @@
+@import "tailwindcss";
+
+/* Global Resets & Base Theme */
+@layer base {
+  html, body, #root {
+    @apply h-full w-full m-0 p-0 overflow-hidden bg-slate-950 text-slate-200;
+  }
+}
+
+/* Custom Scrollbar for a sleek dark theme */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-900; 
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-700 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-600;
+}
+
+/* SVG Diagram Specific Styles */
+@layer components {
+  .svg-highlight {
+    /* brightness-125 makes the underlying color pop, z-10 brings it to the front */
+    @apply brightness-125 z-10 transition-all duration-300;
+  }
+  
+  .svg-clickable {
+    @apply cursor-pointer transition-all duration-200;
+  }
+}

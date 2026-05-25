@@ -1,7 +1,52 @@
 import { useDiagramStore } from '../store/diagramStore';
 
+const BINARY_UI = {
+  'add': [
+    { label: 'op (6)', bits: '000000', color: 'sky' },
+    { label: 'rs (5)', bits: '10001', color: 'emerald' },
+    { label: 'rt (5)', bits: '10010', color: 'purple' },
+    { label: 'rd (5)', bits: '01000', color: 'amber' },
+    { label: 'shamt (5)', bits: '00000', color: 'slate' },
+    { label: 'funct (6)', bits: '100000', color: 'rose' }
+  ],
+  'addi': [
+    { label: 'opcode', bits: '001000', color: 'pink' },
+    { label: 'rs', bits: '10000', color: 'emerald' },
+    { label: 'rt', bits: '10001', color: 'blue' },
+    { label: 'Immediate', bits: '0000000001100100', color: 'orange' }
+  ],
+  'sw': [
+    { label: 'opcode', bits: '101011', color: 'pink' },
+    { label: 'rs', bits: '11101', color: 'emerald' },
+    { label: 'rt', bits: '11111', color: 'blue' },
+    { label: 'Immediate', bits: '0000000000000100', color: 'orange' }
+  ],
+  'lw': [
+    { label: 'opcode', bits: '100011', color: 'pink' },
+    { label: 'rs', bits: '10001', color: 'emerald' },
+    { label: 'rt', bits: '01000', color: 'blue' },
+    { label: 'Immediate', bits: '0000000000000100', color: 'orange' }
+  ],
+  'beq': [
+    { label: 'opcode', bits: '000100', color: 'pink' },
+    { label: 'rs', bits: '10001', color: 'emerald' },
+    { label: 'rt', bits: '10010', color: 'blue' },
+    { label: 'Immediate', bits: '0000000000000011', color: 'orange' }
+  ]
+};
+
 // =========================================================================
-// 🛠️ SHARED LOGIC HOOK 
+// 🛠️ MINI DATA POPUP COMPONENT (Fixed value render)
+// =========================================================================
+const MiniPopup = ({ label, value }) => (
+  <div className="bg-slate-900/95 border border-blue-500 text-blue-400 px-2 py-1 rounded shadow-lg shadow-blue-500/30 backdrop-blur-sm text-[11px] font-mono pointer-events-none inline-block w-fit whitespace-nowrap">
+    {label && <span className="text-slate-400">{label}: </span>}
+    <span className="font-bold text-white">{value}</span>
+  </div>
+);
+
+// =========================================================================
+// 🛠️ SHARED LOGIC HOOK
 // =========================================================================
 const useWireLogic = (id, type) => {
   const { 
@@ -9,7 +54,8 @@ const useWireLogic = (id, type) => {
     activeControlWires = [], 
     interactionMode, 
     userSelectedWires = [], 
-    toggleUserWire 
+    toggleUserWire,
+    theme 
   } = useDiagramStore();
 
   const isDataActive = activeWires.includes(id);
@@ -22,21 +68,21 @@ const useWireLogic = (id, type) => {
     ? userSelectedWires.length > 0 
     : (activeWires.length > 0 || activeControlWires.length > 0);
 
-  let activeColor = '#38bdf8'; // Blue (Data)
-  if (interactionMode === 'practice_click') activeColor = '#a855f7'; // Purple (User Selected)
-  else if (isCtrlActive) activeColor = '#ef4444'; // Red (Control Signal)
+  let activeColor = '#38bdf8'; 
+  if (interactionMode === 'practice_click') activeColor = '#a855f7'; 
+  else if (isCtrlActive) activeColor = '#ef4444'; 
   
-  const inactiveColor = '#475569'; // Dark Slate (Off)
+  const inactiveColor = theme === 'dark' ? '#475569' : '#cbd5e1'; 
 
-  const currentOpacity = isActive ? 1 : (hasAnyActive ? 0.1 : 0.6);
+  const currentOpacity = isActive ? 1 : (hasAnyActive ? 0.5 : 1);
 
   const style = type === 'stroke' 
     ? { stroke: isActive ? activeColor : inactiveColor, opacity: currentOpacity }
     : { fill: isActive ? activeColor : inactiveColor, opacity: currentOpacity };
 
   const className = type === 'stroke'
-    ? `transition-all duration-300 fill-none ${isActive ? 'stroke-[4px] drop-shadow-[0_0_8px_rgba(56,189,248,0.8)] z-10' : 'stroke-[2px]'}`
-    : `transition-all duration-300 ${isActive ? 'drop-shadow-[0_0_8px_rgba(56,189,248,0.8)] z-10' : ''}`;
+    ? `transition-all duration-300 fill-none ${isActive ? 'stroke-[4px] svg-highlight' : 'stroke-[2px]'}`
+    : `transition-all duration-300 ${isActive ? 'svg-highlight' : ''}`;
 
   const handleClick = () => {
     if (interactionMode === 'practice_click') {
@@ -48,7 +94,7 @@ const useWireLogic = (id, type) => {
     }
   };
 
-  return { style, className, handleClick };
+  return { style, className: `${className} svg-clickable`, handleClick };
 };
 
 // =========================================================================
@@ -74,7 +120,6 @@ const WireLine = ({ id, x1, y1, x2, y2 }) => {
   );
 };
 
-
 // =========================================================================
 // 🖥️ MAIN DIAGRAM CANVAS
 // =========================================================================
@@ -86,10 +131,12 @@ export default function DiagramCanvas() {
     hoveredComponent,
     activeWires = [],
     activeControlWires = [],
-    interactionMode
+    interactionMode,
+    activeInstruction,
+    theme,
+    currentCycle
   } = useDiagramStore();
 
-  // 🛠️ NEW: Determine if we should Force Details to stay open
   const isSimulating = activeWires.length > 0 || activeControlWires.length > 0;
   const isPractice = interactionMode === 'practice_click';
   const forceDetails = isSimulating || isPractice;
@@ -98,56 +145,48 @@ export default function DiagramCanvas() {
     const isActive = selectedComponent === id;
     return {
       id,
-      // If forceDetails is active, we disable the hover shadow effect
       className: `cursor-pointer transition-all duration-300 opacity-100 ${
         isActive 
           ? 'drop-shadow-[0_0_12px_rgba(56,189,248,0.8)]' 
           : (forceDetails ? '' : 'hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]')
       }`,
-      // If forceDetails is active, we disable the hover triggers
       onMouseEnter: () => !forceDetails && setHoveredComponent(id),
       onMouseLeave: () => !forceDetails && setHoveredComponent(null),
       onClick: () => setSelectedComponent(id)
     };
   };
 
-  const textStyle = { pointerEvents: 'none', userSelect: 'none', fill: '#0f172a' };
+  const textStyle = { pointerEvents: 'none', userSelect: 'none', fill: theme === 'dark' ? '#0f172a' : '#0f172a' };
   const textClass = "font-bold font-sans";
 
+  const binaryBlocks = activeInstruction ? BINARY_UI[activeInstruction] : [];
+
+  const getBlockColor = (color) => {
+    const maps = {
+      dark: { sky: 'bg-sky-900/50 text-sky-300 border-sky-700/50', emerald: 'bg-emerald-900/50 text-emerald-300 border-emerald-700/50', purple: 'bg-purple-900/50 text-purple-300 border-purple-700/50', amber: 'bg-amber-900/50 text-amber-300 border-amber-700/50', slate: 'bg-slate-800/50 text-slate-300 border-slate-600/50', rose: 'bg-rose-900/50 text-rose-300 border-rose-700/50', pink: 'bg-pink-900/50 text-pink-300 border-pink-700/50', blue: 'bg-blue-900/50 text-blue-300 border-blue-700/50', orange: 'bg-orange-900/50 text-orange-300 border-orange-700/50' },
+      light: { sky: 'bg-sky-100 text-sky-700 border-sky-300', emerald: 'bg-emerald-100 text-emerald-700 border-emerald-300', purple: 'bg-purple-100 text-purple-700 border-purple-300', amber: 'bg-amber-100 text-amber-700 border-amber-300', slate: 'bg-slate-200 text-slate-700 border-slate-400', rose: 'bg-rose-100 text-rose-700 border-rose-300', pink: 'bg-pink-100 text-pink-700 border-pink-300', blue: 'bg-blue-100 text-blue-700 border-blue-300', orange: 'bg-orange-100 text-orange-700 border-orange-300' }
+    };
+    return maps[theme][color];
+  };
+
   return (
-    <div className="flex-1 bg-slate-950 flex flex-col justify-start items-center overflow-auto relative">
+    <div className={`flex-1 flex flex-col justify-start items-center overflow-auto relative transition-colors duration-300 ${theme === 'dark' ? 'bg-slate-950' : 'bg-slate-50'}`}>
       
-      {/* --- BINARY INSTRUCTION BREAKDOWN UI --- */}
-      <div className="w-full bg-slate-900 border-b border-slate-800 p-4 flex justify-center z-20 shadow-md">
-        <div className="flex gap-2 text-center font-mono">
-          <div className="flex flex-col">
-            <span className="bg-sky-900/50 text-sky-300 px-3 py-2 rounded-t border border-sky-700/50 text-lg tracking-widest">000000</span>
-            <span className="bg-slate-800 text-slate-400 text-xs py-1 rounded-b">op (6)</span>
+      <div className={`w-full border-b p-4 flex justify-center z-20 h-24 items-center transition-colors duration-300 ${theme === 'dark' ? 'bg-slate-900 border-slate-800 shadow-md' : 'bg-white border-slate-200 shadow-sm'}`}>
+        {binaryBlocks.length > 0 ? (
+          <div className="flex gap-2 text-center font-mono">
+            {binaryBlocks.map((block, i) => (
+              <div key={i} className="flex flex-col">
+                <span className={`px-3 py-2 rounded-t border text-lg tracking-widest ${getBlockColor(block.color)}`}>{block.bits}</span>
+                <span className={`text-xs py-1 rounded-b ${theme === 'dark' ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500 border border-t-0 border-slate-200'}`}>{block.label}</span>
+              </div>
+            ))}
           </div>
-          <div className="flex flex-col">
-            <span className="bg-emerald-900/50 text-emerald-300 px-3 py-2 rounded-t border border-emerald-700/50 text-lg tracking-widest">10001</span>
-            <span className="bg-slate-800 text-slate-400 text-xs py-1 rounded-b">rs (5)</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="bg-purple-900/50 text-purple-300 px-3 py-2 rounded-t border border-purple-700/50 text-lg tracking-widest">10010</span>
-            <span className="bg-slate-800 text-slate-400 text-xs py-1 rounded-b">rt (5)</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="bg-amber-900/50 text-amber-300 px-3 py-2 rounded-t border border-amber-700/50 text-lg tracking-widest">01000</span>
-            <span className="bg-slate-800 text-slate-400 text-xs py-1 rounded-b">rd (5)</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="bg-slate-800/50 text-slate-300 px-3 py-2 rounded-t border border-slate-600/50 text-lg tracking-widest">00000</span>
-            <span className="bg-slate-800 text-slate-400 text-xs py-1 rounded-b">shamt (5)</span>
-          </div>
-          <div className="flex flex-col">
-            <span className="bg-rose-900/50 text-rose-300 px-3 py-2 rounded-t border border-rose-700/50 text-lg tracking-widest">100000</span>
-            <span className="bg-slate-800 text-slate-400 text-xs py-1 rounded-b">funct (6)</span>
-          </div>
-        </div>
+        ) : (
+           <span className={`italic ${theme === 'dark' ? 'text-slate-600' : 'text-slate-400'}`}>Select an instruction to view binary breakdown.</span>
+        )}
       </div>
 
-      {/* --- SVG DIAGRAM --- */}
       <div className="flex-1 flex justify-center items-center p-8">
         <svg width="1100" height="631" viewBox="0 0 1100 631" fill="none" xmlns="http://www.w3.org/2000/svg" className="max-w-full h-auto">
           
@@ -172,15 +211,12 @@ export default function DiagramCanvas() {
             <WirePath id="wire_18" type="fill" d="M734 121.5L724 115.726V127.273L734 121.5ZM706 121.5V122.5H725V121.5V120.5H706V121.5Z" />
             <WirePath id="wire_19" type="fill" d="M644 453.5L634 447.726V459.273L644 453.5ZM577 453.5V454.5H635V453.5V452.5H577V453.5Z" />
             <WirePath id="wire_20" type="fill" d="M643.5 486.5L633.5 480.726L633.5 492.273L643.5 486.5ZM621.5 574L621.5 575L622.5 575L622.5 574L621.5 574ZM621.5 486.5L621.5 485.5L620.5 485.5L620.5 486.5L621.5 486.5ZM492 574L492 575L621.5 575L621.5 574L621.5 573L492 573L492 574ZM621.5 574L622.5 574L622.5 486.5L621.5 486.5L620.5 486.5L620.5 574L621.5 574ZM621.5 486.5L621.5 487.5L634.5 487.5L634.5 486.5L634.5 485.5L621.5 485.5L621.5 486.5Z" />
-            <WirePath id="wire_21" type="fill" d="M734 363L724 357.226V368.773L734 363ZM577 363V364H725V363V362H577V363Z" />
             <WirePath id="wire_22" type="fill" d="M734.015 472.5L724.195 466.426L723.845 477.968L734.015 472.5ZM668.015 470.5L667.985 471.5L724.989 473.227L725.019 472.228L725.05 471.228L668.045 469.501L668.015 470.5Z" />
             <WirePath id="wire_23" type="stroke" d="M436.286 307.59L492 307.59L492 345" />
             <WirePath id="wire_24" type="stroke" d="M454.136 226.519L1075.14 226.519L1075.14 414.5" />
             <WirePath id="wire_25" type="stroke" d="M450.979 176.5L743 176.5L743 162.5L787.979 162.5" />
             <WirePath id="wire_26" type="stroke" d="M787.5 197.5L760 197.5L760 219.5L846.5 219.5L846.5 384.89L826.488 384.89" />
             <WirePath id="wire_27" type="stroke" d="M856.467 109.178L856.467 180.5L833 180.5" />
-            <WirePath id="wire_28" type="stroke" d="M454.148 238.522L968.148 238.522L968.148 397.522" />
-            <WirePath id="wire_29" type="stroke" d="M454.227 250.554L879 250.555L879 553L965.227 553L965.228 511.554" />
             <WirePath id="wire_30" type="stroke" d="M451.361 269.654L688 269.654L688 565.654L734.361 565.654" />
             <WirePath id="wire_31" type="stroke" d="M445 287.594L656.291 287.594L656.291 434.594" />
             <WirePath id="wire_32" type="stroke" d="M377.034 568.501L377.034 630L782.034 630L782.034 596.501" />
@@ -188,9 +224,139 @@ export default function DiagramCanvas() {
             <WirePath id="wire_34" type="fill" d="M575.5 455.5L574.5 455.5L574.5 457.5L575.5 457.5L575.5 456.5L575.5 455.5ZM906.024 470.555L896.024 464.781L896.024 476.328L906.024 470.555ZM591.027 515L590.027 515L590.027 516L591.027 516L591.027 515ZM866 470.555L866 469.555L865 469.555L865 470.555L866 470.555ZM866 515L866 516L867 516L867 515L866 515ZM591.027 456.5L592.027 456.5L592.027 455.5L591.027 455.5L591.027 456.5ZM866 470.555L866 471.555L897.024 471.555L897.024 470.555L897.024 469.555L866 469.555L866 470.555ZM591.027 515L591.027 516L866 516L866 515L866 514L591.027 514L591.027 515ZM866 515L867 515L867 470.555L866 470.555L865 470.555L865 515L866 515ZM575.5 456.5L575.5 457.5L591.027 457.5L591.027 456.5L591.027 455.5L575.5 455.5L575.5 456.5ZM591.027 456.5L590.027 456.5L590.027 515L591.027 515L592.027 515L592.027 456.5L591.027 456.5Z" />
             <WirePath id="wire_35" type="fill" d="M826.5 433L825.5 433L825.5 435L826.5 435L826.5 434L826.5 433ZM1057.06 462.504L1047.06 456.73L1047.06 468.277L1057.06 462.504ZM1041 462.504L1041 461.504L1040 461.504L1040 462.504L1041 462.504ZM1041 565L1041 566L1042 566L1042 565L1041 565ZM841.064 565L840.064 565L840.064 566L841.064 566L841.064 565ZM841.064 434L842.064 434L842.064 433L841.064 433L841.064 434ZM1041 462.504L1041 463.504L1048.06 463.504L1048.06 462.504L1048.06 461.504L1041 461.504L1041 462.504ZM1041 565L1042 565L1042 462.504L1041 462.504L1040 462.504L1040 565L1041 565ZM841.064 565L841.064 566L1041 566L1041 565L1041 564L841.064 564L841.064 565ZM826.5 434L826.5 435L841.064 435L841.064 434L841.064 433L826.5 433L826.5 434ZM841.064 434L840.064 434L840.064 565L841.064 565L842.064 565L842.064 434L841.064 434Z" />
             <WireLine id="wire_36" x1="781" y1="532" x2="781" y2="480" />
+            <WirePath id="wire_28" type="stroke" d="M454.148 238.522L968.148 238.522L968.148 397.522" />
+            <WirePath id="wire_29" type="stroke" d="M454.227 250.554L879 250.555L879 553L965.227 553L965.228 511.554" />
+            <WirePath id="wire_21" type="fill" d="M734 363L724 357.226V368.773L734 363ZM577 363V364H725V363V362H577V363Z" />
             <WirePath id="wire_37" type="fill" d="M910 434L900 428.226V439.773L910 434ZM826.5 434V435H901V434V433H826.5V434Z" />
             <WirePath id="wire_38" type="fill" d="M1056.99 425.5L1046.83 419.999L1047.15 431.542L1056.99 425.5ZM1019.99 426.5L1020.01 427.5L1048.02 426.743L1047.99 425.743L1047.96 424.744L1019.96 425.5L1019.99 426.5Z" />
           </g>
+
+          {/* =========================================
+              NEW: CYCLE-BASED FLOATING POPUPS
+              ========================================= */}
+          
+          {/* ---------------- CYCLE 1: Instruction Decode & Register Read ---------------- */}
+          {currentCycle >= 1 && (
+            <>
+              {activeInstruction === 'add' && (
+                <>
+                  <foreignObject x="580" y="325" width="200" height="50" className="overflow-visible z-50"><MiniPopup label="Read 1" value="17 ($s1)"/></foreignObject>
+                  <foreignObject x="580" y="405" width="200" height="50" className="overflow-visible z-50"><MiniPopup label="Read 2" value="18 ($s2)"/></foreignObject>
+                  <foreignObject x="290" y="480" width="150" height="50" className="overflow-visible z-50"><MiniPopup label="RegDst" value="1"/></foreignObject>
+                </>
+              )}
+              {activeInstruction === 'addi' && (
+                <>
+                  <foreignObject x="580" y="325" width="200" height="50" className="overflow-visible z-50"><MiniPopup label="Read 1" value="25 ($s1)"/></foreignObject>
+                </>
+              )}
+              {activeInstruction === 'lw' && (
+                <>
+                  <foreignObject x="580" y="325" width="200" height="50" className="overflow-visible z-50"><MiniPopup label="Read 1" value="100 ($s1)"/></foreignObject>
+                </>
+              )}
+              {activeInstruction === 'sw' && (
+                <>
+                  <foreignObject x="580" y="325" width="200" height="50" className="overflow-visible z-50"><MiniPopup label="Read 1" value="200 ($s2)"/></foreignObject>
+                  <foreignObject x="580" y="405" width="200" height="50" className="overflow-visible z-50"><MiniPopup label="Read 2" value="500 ($s0)"/></foreignObject>
+                </>
+              )}
+              {activeInstruction === 'beq' && (
+                <>
+                  <foreignObject x="580" y="325" width="200" height="50" className="overflow-visible z-50"><MiniPopup label="Read 1" value="42 ($s1)"/></foreignObject>
+                  <foreignObject x="580" y="405" width="200" height="50" className="overflow-visible z-50"><MiniPopup label="Read 2" value="42 ($s0)"/></foreignObject>
+                </>
+              )}
+            </>
+          )}
+
+          {/* ---------------- CYCLE 2: Execute / Address Calculation ---------------- */}
+          {currentCycle >= 2 && (
+            <>
+              {/* PC Adders (Shared visual for all) */}
+              <foreignObject x="80" y="50" width="180" height="40" className="overflow-visible z-50"><MiniPopup label="Address" value="0x00001000"/></foreignObject>
+              <foreignObject x="350" y="80" width="200" height="50" className="overflow-visible z-50"><MiniPopup label="Next PC" value="0x00001004"/></foreignObject>
+
+              {/* Sign Extend Outputs */}
+              {activeInstruction === 'addi' && <foreignObject x="500" y="530" width="100" height="40" className="overflow-visible z-50"><MiniPopup label="Sign Ext" value="100"/></foreignObject>}
+              {activeInstruction === 'lw' && <foreignObject x="500" y="530" width="100" height="40" className="overflow-visible z-50"><MiniPopup label="Sign Ext" value="4"/></foreignObject>}
+              {activeInstruction === 'sw' && <foreignObject x="500" y="530" width="100" height="40" className="overflow-visible z-50"><MiniPopup label="Sign Ext" value="4"/></foreignObject>}
+              {activeInstruction === 'beq' && (
+                <>
+                  <foreignObject x="500" y="530" width="150" height="40" className="overflow-visible z-50"><MiniPopup label="Sign Ext" value="Offset"/></foreignObject>
+                  <foreignObject x="720" y="-10" width="150" height="40" className="overflow-visible z-50"><MiniPopup label="Target Addr" value="0x00001010"/></foreignObject>
+                </>
+              )}
+            </>
+          )}
+
+          {/* ---------------- CYCLE 3: ALU Execution ---------------- */}
+          {currentCycle >= 3 && (
+            <>
+              {activeInstruction === 'add' && (
+                <>
+                  <foreignObject x="695" y="330" width="150" height="40" className="overflow-visible z-50"><MiniPopup value="17"/></foreignObject>
+                  <foreignObject x="695" y="440" width="150" height="40" className="overflow-visible z-50"><MiniPopup value="18"/></foreignObject>
+                  <foreignObject x="750" y="500" width="150" height="40" className="overflow-visible z-50"><MiniPopup value="10"/></foreignObject>
+                </>
+              )}
+              {activeInstruction === 'addi' && (
+                <>
+                  <foreignObject x="695" y="330" width="150" height="40" className="overflow-visible z-50"><MiniPopup value="25"/></foreignObject>
+                  <foreignObject x="695" y="440" width="150" height="40" className="overflow-visible z-50"><MiniPopup value="100"/></foreignObject>
+                  <foreignObject x="750" y="500" width="150" height="40" className="overflow-visible z-50"><MiniPopup value="00"/></foreignObject>
+                </>
+              )}
+              {activeInstruction === 'lw' && (
+                <>
+                  <foreignObject x="695" y="330" width="150" height="40" className="overflow-visible z-50"><MiniPopup value="100"/></foreignObject>
+                  <foreignObject x="695" y="440" width="150" height="40" className="overflow-visible z-50"><MiniPopup value="4"/></foreignObject>
+                  <foreignObject x="750" y="500" width="150" height="40" className="overflow-visible z-50"><MiniPopup  value="00"/></foreignObject>
+                </>
+              )}
+              {activeInstruction === 'sw' && (
+                <>
+                  <foreignObject x="695" y="330" width="150" height="40" className="overflow-visible z-50"><MiniPopup value="200"/></foreignObject>
+                  <foreignObject x="695" y="440" width="150" height="40" className="overflow-visible z-50"><MiniPopup value="4"/></foreignObject>
+                </>
+              )}
+              {activeInstruction === 'beq' && (
+                <>
+                  <foreignObject x="695" y="330" width="150" height="40" className="overflow-visible z-50"><MiniPopup value="42"/></foreignObject>
+                  <foreignObject x="695" y="440" width="150" height="40" className="overflow-visible z-50"><MiniPopup value="42"/></foreignObject>
+                  <foreignObject x="750" y="500" width="150" height="40" className="overflow-visible z-50"><MiniPopup value="01"/></foreignObject>
+                  <foreignObject x="830" y="360" width="150" height="40" className="overflow-visible z-50"><MiniPopup value="1"/></foreignObject>
+                </>
+              )}
+            </>
+          )}
+
+          {/* ---------------- CYCLE 4: Memory & Writeback ---------------- */}
+          {currentCycle >= 4 && (
+            <>
+              {activeInstruction === 'add' && <foreignObject x="1010" y="580" width="150" height="40" className="overflow-visible z-50"><MiniPopup label="Result" value="35"/></foreignObject>}
+              
+              {activeInstruction === 'addi' && <foreignObject x="1010" y="580" width="150" height="40" className="overflow-visible z-50"><MiniPopup label="Result" value="125"/></foreignObject>}
+              
+              {activeInstruction === 'lw' && (
+                <>
+                  <foreignObject x="830" y="400" width="150" height="40" className="overflow-visible z-50"><MiniPopup label="Addr" value="104"/></foreignObject>
+                  <foreignObject x="970" y="350" width="150" height="40" className="overflow-visible z-50"><MiniPopup label="Read Data" value="500"/></foreignObject>
+                  <foreignObject  x="950" y="580" width="150" height="40" className="overflow-visible z-50"><MiniPopup label="Write Data (Reg)" value="500"/></foreignObject>
+                </>
+              )}
+              
+              {activeInstruction === 'sw' && (
+                <>
+                  <foreignObject x="830" y="400" width="150" height="40" className="overflow-visible z-50"><MiniPopup label="Addr" value="204"/></foreignObject>
+                </>
+              )}
+              
+              {activeInstruction === 'beq' && (
+                <foreignObject x="800" y="15" width="200" height="40" className="overflow-visible z-50"><MiniPopup label="PCSrc" value="1 (Taken)"/></foreignObject>
+              )}
+            </>
+          )}
 
           {/* =========================================
               THE COMPONENTS

@@ -230,7 +230,7 @@ const handleCheckAnswers = () => {
               theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
             }`}
           >
-            Generate Random ✨
+            Generate Random
           </button>
 
           {/* Notice Block for Simulation Rules */}
@@ -239,7 +239,7 @@ const handleCheckAnswers = () => {
               ? 'bg-blue-900/20 border-blue-500/30 text-blue-300' 
               : 'bg-blue-50 border-blue-200 text-blue-800'
           }`}>
-            <p className="font-bold mb-1 flex items-center gap-1">ℹ️ Simulation Rules</p>
+            <p className="font-bold mb-1 flex items-center gap-1">Simulation Rules</p>
             <ul className="list-disc pl-4 space-y-1">
               <li>Registers hold their standard mapped value (e.g. <span className="font-mono font-bold">$s0 = 16</span>, <span className="font-mono font-bold">$t0 = 8</span>).</li>
               <li>Memory read operations always load <span className="font-mono font-bold">2003</span>.</li>

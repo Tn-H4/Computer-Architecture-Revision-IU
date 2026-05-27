@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useDiagramStore } from '../store/diagramStore';
 
 // Helper component for providing feedback on text inputs
-const FeedbackInput = ({ name, value, onChange, isCorrect, correctValue, placeholder }) => (
+const FeedbackInput = ({ name, value, onChange, isCorrect, correctValue, placeholder, theme }) => (
   <div className="flex flex-col gap-1 w-full">
     <input 
       type="text" 
@@ -10,8 +10,10 @@ const FeedbackInput = ({ name, value, onChange, isCorrect, correctValue, placeho
       value={value} 
       onChange={onChange} 
       placeholder={placeholder}
-      className={`bg-slate-900 border text-sky-400 rounded p-1.5 text-xs focus:outline-none focus:border-blue-500 font-mono w-full transition-colors ${
-        isCorrect === undefined ? 'border-slate-600' : isCorrect ? 'border-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.3)]' : 'border-rose-500 shadow-[0_0_5px_rgba(244,63,94,0.3)]'
+      className={`border rounded p-1.5 text-xs focus:outline-none focus:border-blue-500 font-mono w-full transition-colors ${
+        theme === 'dark' ? 'bg-slate-900 text-sky-400' : 'bg-slate-50 text-sky-600'
+      } ${
+        isCorrect === undefined ? (theme === 'dark' ? 'border-slate-600' : 'border-slate-300') : isCorrect ? 'border-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.3)]' : 'border-rose-500 shadow-[0_0_5px_rgba(244,63,94,0.3)]'
       }`}
     />
     {isCorrect === false && correctValue !== undefined && (
@@ -23,11 +25,11 @@ const FeedbackInput = ({ name, value, onChange, isCorrect, correctValue, placeho
 const Sidebar = () => {
   const [showHint, setShowHint] = useState(false);
 
-  // 👉 THIS IS THE FIX: We pull all required states out of the store here!
+  // 👉 FIX: Extracted `theme` from the store!
   const { 
     interactionMode, practiceInput, verificationState, verifyPracticeSubmission,
     currentCycle, playCycle, prevCycle, skipToCycleEnd, clearWires, 
-    isAnimating, activeInstruction, answers, setAnswers, verifyAnswers
+    isAnimating, activeInstruction, answers, setAnswers, verifyAnswers, theme
   } = useDiagramStore();
   
   const INSTRUCTION_ANSWERS = {
@@ -68,7 +70,6 @@ const Sidebar = () => {
 
   const displayData = instructionDetails[activeInstruction] || instructionDetails['add'];
 
-  // In Practice Mode, read the dynamically calculated ground truth. In Explore mode, use hardcoded.
   const correctAnswers = interactionMode === 'practice_click' && verificationState
     ? { 
         signals: verificationState.correctSignals || {}, 
@@ -107,54 +108,64 @@ const Sidebar = () => {
   };    
 
   return (
-    <div className="w-80 h-full bg-slate-900 border-l border-slate-700 p-4 flex flex-col gap-4 overflow-y-auto text-slate-200">
+    <div className={`w-80 h-full border-l p-4 flex flex-col gap-4 overflow-y-auto transition-colors duration-300 ${
+      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
+    }`}>
       
-      {/* INSTRUCTION DISPLAY (Conditional based on mode) */}
+      {/* INSTRUCTION DISPLAY */}
       {interactionMode === 'explore' ? (
-        <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 shrink-0 transition-all">
+        <div className={`rounded-lg p-4 border shrink-0 transition-all ${
+          theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-300 shadow-sm'
+        }`}>
           <div className="text-xs text-slate-400 uppercase tracking-wider mb-1">Active Instruction</div>
           <div className="flex flex-col gap-1 mb-2">
-            <span className="text-2xl font-bold font-mono text-blue-400">{displayData.name}</span>
-            <span className="text-xs text-slate-300 font-semibold whitespace-pre-line">{displayData.description}</span>
+            <span className={`text-2xl font-bold font-mono ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}>{displayData.name}</span>
+            <span className={`text-xs font-semibold whitespace-pre-line ${theme === 'dark' ? 'text-slate-300' : 'text-slate-600'}`}>{displayData.description}</span>
           </div>
-          <button onClick={() => setShowHint(!showHint)} className="text-xs text-blue-400 hover:text-blue-300 underline mt-1">
+          <button onClick={() => setShowHint(!showHint)} className={`text-xs underline mt-1 ${theme === 'dark' ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'}`}>
             {showHint ? 'Hide Binary Breakdown' : 'Show Binary Breakdown'}
           </button>
           {showHint && (
-            <div className="mt-2 p-2 bg-slate-950 rounded font-mono text-xs text-center text-emerald-400 border border-slate-700 break-all">
+            <div className={`mt-2 p-2 rounded font-mono text-xs text-center border break-all ${
+              theme === 'dark' ? 'bg-slate-950 text-emerald-400 border-slate-700' : 'bg-slate-100 text-emerald-700 border-slate-200'
+            }`}>
               {displayData.binary}
             </div>
           )}
         </div>
       ) : (
-        <div className="bg-slate-800 rounded-lg p-4 border border-purple-500/50 shadow-[0_0_15px_rgba(168,85,247,0.15)] shrink-0 transition-all">
-          <div className="text-xs text-purple-400 uppercase tracking-wider mb-1 font-bold">Target Practice Instruction</div>
-          <div className="text-xl font-bold font-mono text-white mb-2 break-words">
+        <div className={`rounded-lg p-4 border shrink-0 transition-all shadow-[0_0_15px_rgba(168,85,247,0.15)] ${
+          theme === 'dark' ? 'bg-slate-800 border-purple-500/50' : 'bg-white border-purple-300'
+        }`}>
+          <div className={`text-xs uppercase tracking-wider mb-1 font-bold ${theme === 'dark' ? 'text-purple-400' : 'text-purple-600'}`}>Target Practice Instruction</div>
+          <div className={`text-xl font-bold font-mono mb-2 break-words ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
             {practiceInput || "[ Awaiting Instruction ]"}
           </div>
-          <p className="text-[11px] text-slate-400 leading-tight">Fill out the active data paths below using the standard MIPS register values.</p>
+          <p className={`text-[11px] leading-tight ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Fill out the active data paths below using the standard MIPS register values.</p>
         </div>
       )}
 
-      {/* PLAYBACK CONTROLS (Explore Mode Only) */}
+      {/* PLAYBACK CONTROLS */}
       {interactionMode === 'explore' && (
-        <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 shrink-0">
-          <h3 className="text-sm font-semibold text-slate-300 mb-3 border-b border-slate-700 pb-2 flex justify-between items-center">
+        <div className={`rounded-lg p-4 border shrink-0 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-300 shadow-sm'}`}>
+          <h3 className={`text-sm font-semibold mb-3 border-b pb-2 flex justify-between items-center ${theme === 'dark' ? 'text-slate-300 border-slate-700' : 'text-slate-700 border-slate-200'}`}>
             <span>Step-by-Step Execution</span>
-            {isAnimating && <span className="text-emerald-400 text-xs animate-pulse">Animating...</span>}
+            {isAnimating && <span className="text-emerald-500 text-xs animate-pulse">Animating...</span>}
           </h3>
-          <div className="flex items-center justify-between bg-slate-900 rounded p-2 border border-slate-700">
+          <div className={`flex items-center justify-between rounded p-2 border ${theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-slate-50 border-slate-200'}`}>
             <button 
               onClick={prevCycle} disabled={currentCycle === 0 || isAnimating}
-              className="px-3 py-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed rounded text-xs font-bold"
+              className={`px-3 py-1 disabled:opacity-50 disabled:cursor-not-allowed rounded text-xs font-bold ${
+                theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-slate-200 hover:bg-slate-300 text-slate-800'
+              }`}
             >
               ◀ Prev
             </button>
-            <span className="text-xs font-mono font-bold text-blue-400">
+            <span className={`text-xs font-mono font-bold ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}>
               {currentCycle === 0 ? 'Ready' : `Cycle ${currentCycle} / 4`}
             </span>
             {currentCycle >= 4 && !isAnimating ? (
-              <button onClick={handleReset} className="px-3 py-1 bg-rose-600 hover:bg-rose-500 rounded text-xs font-bold transition-all">
+              <button onClick={handleReset} className="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded text-xs font-bold transition-all">
                 Reset ↺
               </button>
             ) : (
@@ -172,20 +183,22 @@ const Sidebar = () => {
       )}
 
       {/* 1. Functional Units */}
-      <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 shrink-0">
-        <h3 className="text-sm font-semibold text-slate-300 mb-3 border-b border-slate-700 pb-2">
+      <div className={`rounded-lg p-4 border shrink-0 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-300 shadow-sm'}`}>
+        <h3 className={`text-sm font-semibold mb-3 border-b pb-2 ${theme === 'dark' ? 'text-slate-300 border-slate-700' : 'text-slate-700 border-slate-200'}`}>
           1. Active Functional Units
         </h3>
         <div className="grid grid-cols-2 gap-2">
           {Object.keys(answers.functionalUnits).map((unit) => {
              const isCorrect = verificationState?.functionalUnits?.[unit];
-             const labelColor = isCorrect === undefined ? 'text-slate-400' : isCorrect ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold';
+             const labelColor = isCorrect === undefined 
+               ? (theme === 'dark' ? 'text-slate-400 hover:text-white' : 'text-slate-600 hover:text-slate-900') 
+               : isCorrect ? 'text-emerald-500 font-bold' : 'text-rose-500 font-bold';
              
              return (
-              <label key={unit} className={`flex items-center gap-2 text-xs cursor-pointer hover:text-white ${labelColor}`}>
+              <label key={unit} className={`flex items-center gap-2 text-xs cursor-pointer transition-colors ${labelColor}`}>
                 <input 
                   type="checkbox" checked={answers.functionalUnits[unit]} onChange={() => handleUnitToggle(unit)} 
-                  className={`rounded border-slate-600 bg-slate-700 focus:ring-blue-500 ${isCorrect === false ? 'accent-rose-500' : 'accent-blue-500'}`}
+                  className={`rounded focus:ring-blue-500 ${theme === 'dark' ? 'bg-slate-700 border-slate-600' : 'bg-white border-slate-300'} ${isCorrect === false ? 'accent-rose-500' : 'accent-blue-500'}`}
                 />
                 {unit}
               </label>
@@ -195,18 +208,18 @@ const Sidebar = () => {
       </div>
 
       {/* 2. Data Values */}
-      <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 shrink-0">
-        <h3 className="text-sm font-semibold text-slate-300 mb-4 border-b border-slate-700 pb-2">
+      <div className={`rounded-lg p-4 border shrink-0 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-300 shadow-sm'}`}>
+        <h3 className={`text-sm font-semibold mb-4 border-b pb-2 ${theme === 'dark' ? 'text-slate-300 border-slate-700' : 'text-slate-700 border-slate-200'}`}>
           2. Data Values (Inputs/Outputs)
         </h3>
         <div className="flex flex-col gap-5">
           {Object.entries(dataGroups).map(([groupName, fields]) => (
             <div key={groupName}>
-              <h4 className="text-[11px] font-bold text-slate-400 mb-2 uppercase tracking-widest">{groupName}</h4>
+              <h4 className={`text-[11px] font-bold mb-2 uppercase tracking-widest ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>{groupName}</h4>
               <div className="grid grid-cols-2 gap-3">
                 {fields.map(({ key, label }) => (
                   <div key={key} className="flex flex-col gap-1 w-full">
-                    <label className="text-[10px] text-slate-400">{label}</label>
+                    <label className={`text-[10px] ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>{label}</label>
                     <FeedbackInput 
                       name={key} 
                       value={answers.dataValues[key]} 
@@ -214,6 +227,7 @@ const Sidebar = () => {
                       placeholder="..."
                       isCorrect={verificationState?.dataValues?.[key]}
                       correctValue={correctAnswers?.dataValues?.[key]}
+                      theme={theme}
                     />
                   </div>
                 ))}
@@ -224,24 +238,26 @@ const Sidebar = () => {
       </div>
 
       {/* 3. Control Signals */}
-      <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 shrink-0">
-        <h3 className="text-sm font-semibold text-slate-300 mb-3 border-b border-slate-700 pb-2">
+      <div className={`rounded-lg p-4 border shrink-0 ${theme === 'dark' ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-300 shadow-sm'}`}>
+        <h3 className={`text-sm font-semibold mb-3 border-b pb-2 ${theme === 'dark' ? 'text-slate-300 border-slate-700' : 'text-slate-700 border-slate-200'}`}>
           3. Control Signals
         </h3>
         <div className="grid grid-cols-3 gap-x-2 gap-y-3">
           {controlSignals.map((signal) => {
              const isCorrect = verificationState?.signals?.[signal];
-             let borderClass = 'border-slate-600';
+             let borderClass = theme === 'dark' ? 'border-slate-600' : 'border-slate-300';
              if (isCorrect !== undefined) {
                borderClass = isCorrect ? 'border-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.3)]' : 'border-rose-500 shadow-[0_0_5px_rgba(244,63,94,0.3)]';
              }
 
              return (
               <div key={signal} className="flex flex-col gap-1">
-                <label className="text-[10px] text-slate-400 truncate" title={signal}>{signal}</label>
+                <label className={`text-[10px] truncate ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`} title={signal}>{signal}</label>
                 <select 
                   name={signal} value={answers.signals[signal]} onChange={handleSignalChange} 
-                  className={`bg-slate-700 border ${borderClass} text-white rounded p-1 text-xs focus:outline-none focus:border-blue-500 font-mono`}
+                  className={`border ${borderClass} rounded p-1 text-xs focus:outline-none focus:border-blue-500 font-mono transition-colors ${
+                    theme === 'dark' ? 'bg-slate-700 text-white' : 'bg-white text-slate-900'
+                  }`}
                 >
                   <option value="">-</option>
                   <option value="0">0</option>
@@ -249,7 +265,7 @@ const Sidebar = () => {
                   <option value="X">X</option>
                 </select>
                 {isCorrect === false && correctAnswers?.signals && (
-                  <span className="text-[10px] text-rose-400 font-bold">Ans: {correctAnswers.signals[signal]}</span>
+                  <span className="text-[10px] text-rose-500 font-bold">Ans: {correctAnswers.signals[signal]}</span>
                 )}
               </div>
              );

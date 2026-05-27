@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useDiagramStore } from '../store/diagramStore';
+import { SunIcon, MoonIcon } from './Icons'; // Adjust path if needed
 
 export default function InstructionPanel() {
   const { 
     activeInstruction, setActiveInstruction,
     clearWires, interactionMode, setInteractionMode,
     userSelectedWires, theme, toggleTheme,
+    toggleMenu,       // ADD THIS
+    currentChapter,   // ADD THIS
     // NEW: Destructure the practice states from your store
     practiceInput, setPracticeInput, verifyPracticeSubmission,
-    setShowAnswerKey
+    setShowAnswerKey, verificationState // <--- ADD THIS LINE BACK IN!
   } = useDiagramStore();
 
   const [practiceChecked, setPracticeChecked] = useState(false);
@@ -100,19 +103,36 @@ const handleCheckAnswers = () => {
       theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'
     }`}>
       
-      {/* HEADER & THEME TOGGLE */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className={`text-2xl font-black tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
-          CPU<span className="text-sky-500">Sim</span>
-        </h1>
+      {/* NEW COMPACT HEADER */}
+      <div className={`flex items-center p-3 border-b gap-3 ${
+        theme === 'dark' ? 'border-slate-800' : 'border-slate-200'
+      }`}>
+        {/* Hamburger Menu Button */}
+        <button 
+          onClick={toggleMenu}
+          className={`p-1.5 rounded-md transition-colors ${
+            theme === 'dark' ? 'hover:bg-slate-800 text-slate-300' : 'hover:bg-slate-100 text-slate-600'
+          }`}
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        
+        {/* Chapter Title */}
+        <span className="font-bold text-sm tracking-wide">
+          {currentChapter === 1 ? 'Ch 1' : 'Chapter 4'}
+        </span>
+
+        {/* Theme Toggle Button right next to Title */}
         <button 
           onClick={toggleTheme} 
-          className={`p-2 rounded-lg transition-colors ${
-            theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 text-yellow-400' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+          className={`p-1.5 rounded-lg transition-colors ml-1 ${
+            theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 text-amber-400' : 'bg-slate-200 hover:bg-slate-300 text-slate-600'
           }`}
           title="Toggle Light/Dark Mode"
         >
-          {theme === 'dark' ? '☀️' : '🌙'}
+          {theme === 'dark' ? <SunIcon className="w-4 h-4" /> : <MoonIcon className="w-4 h-4" />}
         </button>
       </div>
 
@@ -151,13 +171,15 @@ const handleCheckAnswers = () => {
              <button 
                key={inst}
                onClick={() => setActiveInstruction(inst)} 
-               className={`py-3 px-4 rounded-lg text-left font-mono text-sm transition-colors shadow-md ${
+               className={`py-3 px-4 rounded-lg text-left font-mono text-sm transition-all shadow-md ${
                  activeInstruction === inst 
-                  ? (inst === 'lw' ? 'bg-emerald-600 shadow-emerald-500/20' 
-                     : inst === 'sw' ? 'bg-purple-600 shadow-purple-500/20'
-                     : inst === 'beq' ? 'bg-orange-600 shadow-orange-500/20'
-                     : 'bg-sky-600 shadow-sky-500/20') + ' text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  ? (inst === 'lw' ? 'bg-emerald-600 shadow-emerald-500/30' 
+                     : inst === 'sw' ? 'bg-purple-600 shadow-purple-500/30'
+                     : inst === 'beq' ? 'bg-orange-600 shadow-orange-500/30'
+                     : 'bg-sky-600 shadow-sky-500/30') + ' text-white border-transparent'
+                  : (theme === 'dark' 
+                      ? 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-transparent' 
+                      : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-200 shadow-sm')
                }`}
              >
                {inst === 'add' ? 'add $s0, $s1, $s2' : 
@@ -233,7 +255,7 @@ const handleCheckAnswers = () => {
             Wires Selected: <span className="font-bold text-purple-500">{userSelectedWires.length}</span>
           </div>
 
-          {/* VERIFICATION BUTTONS */}
+{/* VERIFICATION BUTTONS */}
           {!practiceChecked ? (
             <button 
               onClick={handleCheckAnswers}
@@ -243,8 +265,33 @@ const handleCheckAnswers = () => {
             </button>
           ) : (
             <div className="flex flex-col gap-3">
-              <div className={`p-3 rounded-lg font-bold text-center ${isCorrect ? 'bg-emerald-600/20 text-emerald-400 border border-emerald-500/50' : 'bg-rose-600/20 text-rose-400 border border-rose-500/50'}`}>
-                {isCorrect ? 'Fully Correct!' : 'Something is incorrect.'}
+              
+              {/* NEW: Grading Checklist UI */}
+              <div className={`p-4 rounded-lg font-bold flex flex-col gap-3 shadow-inner ${isCorrect ? 'bg-emerald-600/10 border border-emerald-500/50' : 'bg-rose-600/10 border border-rose-500/50'}`}>
+                <div className={`text-center text-lg ${isCorrect ? 'text-emerald-500' : 'text-rose-500'}`}>
+                  {isCorrect ? '🎉 Fully Correct!' : 'Verification Failed'}
+                </div>
+                
+                {!isCorrect && verificationState && (
+                  <div className={`flex flex-col gap-1.5 text-xs p-3 rounded-md border ${theme === 'dark' ? 'bg-slate-900/80 border-slate-700 text-slate-300' : 'bg-white border-slate-200 text-slate-700'}`}>
+                    <div className="flex justify-between items-center border-b border-slate-500/30 pb-1">
+                      <span className="uppercase tracking-wider opacity-70">Category</span>
+                      <span className="uppercase tracking-wider opacity-70">Status</span>
+                    </div>
+                    <div className="flex justify-between items-center py-1">
+                      <span>1. Machine Code</span> 
+                      <span>{verificationState.machineCode ? '✅ Passed' : '❌ Failed'}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-1">
+                      <span>2. Diagram Wires</span> 
+                      <span>{verificationState.wiresCorrect ? '✅ Passed' : '❌ Failed'}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-1">
+                      <span>3. Sidebar Fields</span> 
+                      <span>{verificationState.formCorrect ? '✅ Passed' : '❌ Failed'}</span>
+                    </div>
+                  </div>
+                )}
               </div>
               
               {!isCorrect && !showKey && (
@@ -258,7 +305,7 @@ const handleCheckAnswers = () => {
 
               <button 
                 onClick={resetPractice}
-                className="bg-slate-700 hover:bg-slate-600 text-white py-2 px-4 rounded-lg font-bold transition-all shadow-lg mt-2"
+                className={`py-2 px-4 rounded-lg font-bold transition-all shadow-lg mt-2 ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-slate-200 hover:bg-slate-300 text-slate-800'}`}
               >
                 Try Again
               </button>

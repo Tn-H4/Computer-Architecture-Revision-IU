@@ -39,13 +39,20 @@ const BINARY_UI = {
 // =========================================================================
 // 🛠️ MINI DATA POPUP COMPONENT
 // =========================================================================
-const MiniPopup = ({ label, value }) => (
-  <div className="bg-slate-900/95 border border-blue-500 text-blue-400 px-2 py-1 rounded shadow-lg shadow-blue-500/30 backdrop-blur-sm text-[11px] font-mono pointer-events-none inline-block w-fit whitespace-nowrap">
-    {label && <span className="text-slate-400">{label}: </span>}
-    <span className="font-bold text-white">{value}</span>
-  </div>
-);
-
+const MiniPopup = ({ label, value }) => {
+  const { theme } = useDiagramStore();
+  
+  return (
+    <div className={`border px-2 py-1 rounded shadow-lg backdrop-blur-sm text-[11px] font-mono pointer-events-none inline-block w-fit whitespace-nowrap transition-colors duration-300 ${
+      theme === 'dark' 
+        ? 'bg-slate-900/95 border-blue-500 text-blue-400 shadow-blue-500/30' 
+        : 'bg-white/95 border-blue-400 text-blue-700 shadow-blue-400/20'
+    }`}>
+      {label && <span className={theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>{label}: </span>}
+      <span className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{value}</span>
+    </div>
+  );
+}
 // =========================================================================
 // 🛠️ SHARED LOGIC HOOK
 // =========================================================================

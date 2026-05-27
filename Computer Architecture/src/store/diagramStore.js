@@ -51,6 +51,12 @@ const INSTRUCTION_SEQUENCES = {
     3: ['wire_30', 'wire_36', 'wire_19', 'wire_21', 'wire_22', 'wire_35'],
     4: ['wire_35', 'wire_33'] 
   },
+  'sub': {
+    1: ['wire_2', 'wire_6', 'wire_8', 'wire_7', 'wire_3', 'wire_11', 'wire_5', 'wire_12', 'wire_23'],
+    2: ['wire_4', 'wire_14', 'wire_15', 'wire_1'],
+    3: ['wire_30', 'wire_36', 'wire_19', 'wire_21', 'wire_22', 'wire_35'],
+    4: ['wire_35', 'wire_33'] 
+  },
   'addi': {
     1: ['wire_2', 'wire_6', 'wire_7', 'wire_8', 'wire_9', 'wire_10', 'wire_12', 'wire_23'],
     2: ['wire_4', 'wire_14', 'wire_15', 'wire_1'],
@@ -81,6 +87,14 @@ export const useDiagramStore = create((set, get) => ({
   selectedComponent: null,
   hoveredComponent: null,
 
+  // Add these to your existing Zustand store definition
+  isMenuOpen: false,
+  toggleMenu: () => set((state) => ({ isMenuOpen: !state.isMenuOpen })),
+  
+  // Change your currentChapter default from 1 to 0
+  currentChapter: 0, 
+  setChapter: (chapter) => set({ currentChapter: chapter, isMenuOpen: false }),
+  
   theme: 'dark',
   toggleTheme: () => set((state) => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
   
@@ -347,7 +361,7 @@ verifyPracticeSubmission: () => {
       const opcode = parsed.opcode;
       const groundTruth = generateAnswerKey(parsed) || {}; // Fallback to empty object to prevent crashes
 
-      // 1. Verify Machine Code (Safely stringify and strip spaces)
+// 1. Verify Machine Code (Safely stringify and strip spaces)
       const cleanUserMC = String(currentState.practiceMachineCode || '').replace(/\s/g, '').toUpperCase();
       const cleanCorrectMC = String(groundTruth.machineCode || '').replace(/\s/g, '').toUpperCase();
       const isMachineCodeCorrect = cleanUserMC === cleanCorrectMC && !cleanUserMC.includes('X');
@@ -363,7 +377,7 @@ verifyPracticeSubmission: () => {
       const uniqueUserWires = [...new Set(currentState.userSelectedWires || [])].sort();
       const isWiresCorrect = JSON.stringify(uniqueUserWires) === JSON.stringify(uniqueCorrectWires);
 
-// 3. Verify Form Signals, Data Values, and Units (Sidebar)
+      // 3. Verify Form Signals, Data Values, and Units (Sidebar)
       let isFormCorrect = true;
       const correctSignalsForm = {};
       const correctDataForm = {};
@@ -371,28 +385,34 @@ verifyPracticeSubmission: () => {
       
       const userAnswers = currentState.answers || {};
 
-      // Grade Signals
+      // Grade Signals (Treat blank as 'X')
       if (groundTruth.signals) {
           Object.keys(groundTruth.signals).forEach(k => {
-             const isSignalRight = String(userAnswers.signals[k]).trim() === String(groundTruth.signals[k]).trim();
+             let userVal = String(userAnswers.signals?.[k] || '').trim().toUpperCase();
+             if (userVal === '') userVal = 'X'; // Forgive blanks
+             
+             const isSignalRight = userVal === String(groundTruth.signals[k]).trim().toUpperCase();
              correctSignalsForm[k] = isSignalRight;
              if (!isSignalRight) isFormCorrect = false;
           });
       }
 
-      // Grade Data Values (The Math)
+      // Grade Data Values (Treat blank as 'X')
       if (groundTruth.dataValues) {
           Object.keys(groundTruth.dataValues).forEach(k => {
-             const isDataRight = String(userAnswers.dataValues[k]).trim().toUpperCase() === String(groundTruth.dataValues[k]).toUpperCase();
+             let userVal = String(userAnswers.dataValues?.[k] || '').trim().toUpperCase();
+             if (userVal === '') userVal = 'X'; // Forgive blanks
+
+             const isDataRight = userVal === String(groundTruth.dataValues[k]).toUpperCase();
              correctDataForm[k] = isDataRight;
              if (!isDataRight) isFormCorrect = false;
           });
       }
 
-      // Grade Functional Units
+      // Grade Functional Units (Safely handle booleans)
       if (groundTruth.functionalUnits) {
           Object.keys(groundTruth.functionalUnits).forEach(k => {
-             const isUnitRight = userAnswers.functionalUnits[k] === groundTruth.functionalUnits[k];
+             const isUnitRight = !!userAnswers.functionalUnits?.[k] === !!groundTruth.functionalUnits[k];
              correctUnitsForm[k] = isUnitRight;
              if (!isUnitRight) isFormCorrect = false;
           });
@@ -408,21 +428,21 @@ verifyPracticeSubmission: () => {
              signals: correctSignalsForm,
              dataValues: correctDataForm,
              functionalUnits: correctUnitsForm,
-             correctDataValues: groundTruth.dataValues, // Passed to Sidebar for answer key
-             correctSignals: groundTruth.signals,       // Passed to Sidebar for answer key
+             correctDataValues: groundTruth.dataValues,
+             correctSignals: groundTruth.signals, 
              formCorrect: isFormCorrect,
              wiresCorrect: isWiresCorrect,
              correctWires: uniqueCorrectWires 
          }
       });
 
-      return isFullyCorrect;
-
-    } catch (error) {
+      return isFullyCorrect;} catch (error) {
       // If ANYTHING fails, it logs the error instead of blanking your screen!
       console.error("Verification crashed:", error);
       alert("Verification failed. Please check the browser console (F12) for the exact error.");
       return false;
     }
   },
+
+  
 }));

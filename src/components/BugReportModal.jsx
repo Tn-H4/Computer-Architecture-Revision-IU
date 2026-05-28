@@ -34,6 +34,9 @@ export default function BugReportModal() {
             <li>The website only supports for laptop, no phone or ipad.</li>
             <li>Question: Would it supports in the future?</li>
             <li>Maybe, for the meantime, nope.</li>
+            <li>Question: Why is the line so hard to click?</li>
+            <li>There are too many line that sometime they overlay each other.</li>
+            <li>Can it be fix? Yes. Would it be fixed? Probably not. Why? I'm lazy</li>
           </ul>
           <p className="pt-2 font-medium">When filling out the form, please include exactly which chapter you were on!</p>
         </div>

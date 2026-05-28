@@ -4,6 +4,10 @@ An educational React-based web application designed to help International Univer
 
 Built with an interactive SVG-based datapath, drag-and-drop pipeline grids, and dynamic worksheets, this tool brings static computer architecture concepts to life.
 
+## Website is hosting on: 
+
+https://iuca-revision.netlify.app/
+
 ## Key Features
 
 * **Interactive CPU Datapath (SVG):** Clickable components and wires that highlight data flow based on specific MIPS instructions (`lw`, `sw`, `add`, `beq`, etc.).

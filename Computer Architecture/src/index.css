@@ -36,3 +36,17 @@
     @apply cursor-pointer transition-all duration-200;
   }
 }
+/* Add this to your index.css */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #94a3b8; /* slate-400 */
+  border-radius: 20px;
+}
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #475569; /* slate-600 */
+}

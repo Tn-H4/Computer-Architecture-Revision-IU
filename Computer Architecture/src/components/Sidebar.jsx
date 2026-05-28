@@ -1,6 +1,26 @@
 import React, { useState } from 'react';
 import { useDiagramStore } from '../store/diagramStore';
 
+// --- SCROLLBAR STYLES ---
+const SidebarScrollbarStyles = ({ theme }) => (
+  <style>{`
+    .sidebar-scroll::-webkit-scrollbar {
+      width: 8px;
+    }
+    .sidebar-scroll::-webkit-scrollbar-track {
+      background: ${theme === 'dark' ? '#1e293b' : '#f1f5f9'};
+      border-radius: 8px;
+    }
+    .sidebar-scroll::-webkit-scrollbar-thumb {
+      background: ${theme === 'dark' ? '#475569' : '#94a3b8'};
+      border-radius: 8px;
+      border: 2px solid ${theme === 'dark' ? '#1e293b' : '#f1f5f9'};
+    }
+    .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+      background: ${theme === 'dark' ? '#64748b' : '#64748b'};
+    }
+  `}</style>
+);
 // Helper component for providing feedback on text inputs
 const FeedbackInput = ({ name, value, onChange, isCorrect, correctValue, placeholder, theme }) => (
   <div className="flex flex-col gap-1 w-full">
@@ -108,10 +128,13 @@ const Sidebar = () => {
   };    
 
   return (
-    <div className={`w-80 h-full border-l p-4 flex flex-col gap-4 overflow-y-auto transition-colors duration-300 ${
-      theme === 'dark' ? 'bg-slate-900 border-slate-700 text-slate-200' : 'bg-slate-50 border-slate-200 text-slate-800'
-    }`}>
-      
+<> {/* <-- Add this opening fragment */}
+    
+    {/* Inject the custom scrollbar CSS here! */}
+    <SidebarScrollbarStyles theme={theme} />
+
+    {/* Swapped custom-scrollbar for sidebar-scroll to match the CSS */}
+    <div className={`w-80 h-screen flex flex-col overflow-y-auto sidebar-scroll ${theme === 'dark' ? 'bg-slate-800' : 'bg-white'}`}>      
       {/* INSTRUCTION DISPLAY */}
       {interactionMode === 'explore' ? (
         <div className={`rounded-lg p-4 border shrink-0 transition-all ${
@@ -139,7 +162,7 @@ const Sidebar = () => {
         }`}>
           <div className={`text-xs uppercase tracking-wider mb-1 font-bold ${theme === 'dark' ? 'text-purple-400' : 'text-purple-600'}`}>Target Practice Instruction</div>
           <div className={`text-xl font-bold font-mono mb-2 break-words ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
-            {practiceInput || "[ Awaiting Instruction ]"}
+            {practiceInput || "[Awaiting Instruction]"}
           </div>
           <p className={`text-[11px] leading-tight ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>Fill out the active data paths below using the standard MIPS register values.</p>
         </div>
@@ -287,6 +310,7 @@ const Sidebar = () => {
       </div>
 
     </div>
+    </>
   );
 };
 

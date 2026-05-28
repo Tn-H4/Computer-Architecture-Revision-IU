@@ -386,9 +386,17 @@ const Chapter2 = () => {
 
     // Dynamically check mc_ fields based on R or I format
     if (vars.mcAns.type === 'R') {
-      ['op', 'rs', 'rt', 'rd', 'shamt', 'funct'].forEach(f => TARGETS[`mc_${f}`] = vars.mcAns[f]);
+      ['op', 'rs', 'rt', 'rd', 'shamt', 'funct'].forEach(f => {
+        TARGETS[`mc_${f}`] = vars.mcAns[f];
+        TARGETS[`mc_${f}_bin`] = (vars.mcAns[f] >>> 0).toString(2).padStart(f === 'op' || f === 'funct' ? 6 : 5, '0');
+      });
     } else {
-      ['op', 'rs', 'rt', 'imm'].forEach(f => TARGETS[`mc_${f}`] = vars.mcAns[f]);
+      ['op', 'rs', 'rt'].forEach(f => {
+        TARGETS[`mc_${f}`] = vars.mcAns[f];
+        TARGETS[`mc_${f}_bin`] = (vars.mcAns[f] >>> 0).toString(2).padStart(f === 'op' ? 6 : 5, '0');
+      });
+      TARGETS['mc_imm'] = vars.mcAns.imm;
+      TARGETS['mc_imm_bin'] = (vars.mcAns.imm & 0xFFFF).toString(2).padStart(16, '0');
     }
 
     vars.revQuestions.forEach(q => { Object.keys(q.ans).forEach(key => { TARGETS[`${q.id}_${key}`] = q.ans[key]; }); });
@@ -448,17 +456,28 @@ const Chapter2 = () => {
   const renderFormatBlock = (prefix, type) => {
     
     const renderFieldCell = (id, label, bits, flexClass, fieldKey) => {
-      const fieldColors = getFieldColors(isDark);
   const prefix = id.split('_')[0];
   const parentKey = prefix === 'mc' ? 'mc_hex' : `${prefix}_inst`;
   const isRev = revealed[parentKey];
   const maxLen = Number(bits);
+  const fieldColors = getFieldColors(isDark); // ✅ your existing fix
+  const binId = `${id}_bin`;
+
+  // Compute the correct binary answer for the binary row (only used for mc_ fields)
+  const getBinAnswer = () => {
+    const val = getAnswerDisplay(id);
+    if (val === undefined || val === null) return '';
+    return (Number(val) >>> 0).toString(2).padStart(Number(bits), '0');
+  };
 
   return (
     <div key={id} className={`${flexClass} flex flex-col border-r last:border-0 relative transition-all duration-300 ${isDark ? 'border-slate-600' : 'border-slate-300'} ${isRev ? fieldColors[fieldKey] : themeVars.inputBg}`}>
+      {/* Header */}
       <div className={`py-1 text-center text-[10px] md:text-xs font-bold uppercase tracking-wider border-b ${isDark ? 'border-slate-600' : 'border-slate-300'}`}>
         {label} <span className="opacity-60 font-normal">({bits})</span>
       </div>
+
+      {/* Decimal row */}
       <div className="flex flex-col items-center justify-center p-2 relative h-16">
         <input
           type="text"
@@ -479,6 +498,35 @@ const Chapter2 = () => {
           </div>
         )}
       </div>
+
+      {/* Binary row — only shown for Part A (mc_ prefix) */}
+      {prefix === 'mc' && (
+        <>
+          <div className={`py-0.5 text-center text-[9px] font-semibold uppercase tracking-wider border-t border-b opacity-60 ${isDark ? 'border-slate-600' : 'border-slate-300'}`}>
+            binary
+          </div>
+          <div className="flex flex-col items-center justify-center px-1 py-2 relative h-14">
+            <input
+              type="text"
+              value={answers[binId] || ''}
+              onChange={(e) => handleChange(binId, e.target.value.replace(/[^01]/g, ''))}
+              maxLength={Number(bits)}
+              placeholder={'0'.repeat(Number(bits))}
+              className={`w-full h-full text-center bg-transparent focus:outline-none font-mono text-[10px] md:text-xs rounded transition-opacity duration-200 tracking-widest ${isDark ? 'text-slate-300' : 'text-slate-700'} ${isRev ? 'opacity-0 pointer-events-none' : ''}`}
+            />
+            {isRev && (
+              <div className="absolute inset-0 flex items-center justify-center font-bold font-mono text-[10px] md:text-xs pointer-events-none select-none tracking-widest">
+                {getBinAnswer()}
+              </div>
+            )}
+            {isSubmitted && (
+              <div className="absolute top-1 right-1 opacity-80 pointer-events-none">
+                {scores[binId] ? <CheckIcon size={14} /> : <CrossIcon size={14} />}
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 };

@@ -10,6 +10,14 @@ const BINARY_UI = {
     { label: 'shamt (5)', bits: '00000', color: 'slate' },
     { label: 'funct (6)', bits: '100000', color: 'rose' }
   ],
+  'sub': [
+    { label: 'op (6)', bits: '000000', color: 'sky' },
+    { label: 'rs (5)', bits: '10001', color: 'emerald' },
+    { label: 'rt (5)', bits: '10010', color: 'purple' },
+    { label: 'rd (5)', bits: '01000', color: 'amber' },
+    { label: 'shamt (5)', bits: '00000', color: 'slate' },
+    { label: 'funct (6)', bits: '100000', color: 'rose' }
+  ],
   'addi': [
     { label: 'opcode', bits: '001000', color: 'pink' },
     { label: 'rs', bits: '10000', color: 'emerald' },

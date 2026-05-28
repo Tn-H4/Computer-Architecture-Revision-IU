@@ -121,18 +121,12 @@ const handleCheckAnswers = () => {
         
         {/* Chapter Title */}
         <span className="font-bold text-sm tracking-wide">
-          {currentChapter === 1 ? 'Ch 1' : 'Chapter 4'}
+          {currentChapter === 1 ? 'Ch 1' : 'Chapter 4.1'}
         </span>
 
         {/* Theme Toggle Button right next to Title */}
-        <button 
-          onClick={toggleTheme} 
-          className={`p-1.5 rounded-lg transition-colors ml-1 ${
-            theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 text-amber-400' : 'bg-slate-200 hover:bg-slate-300 text-slate-600'
-          }`}
-          title="Toggle Light/Dark Mode"
-        >
-          {theme === 'dark' ? <SunIcon className="w-4 h-4" /> : <MoonIcon className="w-4 h-4" />}
+        <button onClick={toggleTheme} className={`w-10 h-10 flex items-center justify-center rounded-md shadow-md transition-colors border ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-amber-400' : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-700'}`}>
+          {theme === 'dark' ? <SunIcon className="w-6 h-6" /> : <MoonIcon className="w-6 h-6" />}
         </button>
       </div>
 

@@ -87,6 +87,10 @@ export const useDiagramStore = create((set, get) => ({
   selectedComponent: null,
   hoveredComponent: null,
 
+  // Add this near your other state variables
+  isBugModalOpen: false,
+  setBugModalOpen: (isOpen) => set({ isBugModalOpen: isOpen }),
+
   // Add these to your existing Zustand store definition
   isMenuOpen: false,
   toggleMenu: () => set((state) => ({ isMenuOpen: !state.isMenuOpen })),

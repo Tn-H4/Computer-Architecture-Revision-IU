@@ -15,12 +15,13 @@ export default function BugReportModal() {
       />
 
       {/* The Popup Card */}
-      <div className={`relative w-full max-w-md p-6 rounded-xl shadow-2xl transform transition-all ${
+      {/* 👉 FIX: Added 'max-h-[90vh] overflow-y-auto' so it scrolls on tiny screens */}
+      <div className={`relative w-full max-w-md p-6 rounded-xl shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto ${
         theme === 'dark' ? 'bg-slate-900 border border-slate-700 text-slate-200' : 'bg-white border border-slate-200 text-slate-800'
       }`}>
         
         {/* Warning Header */}
-        <div className="flex items-center gap-3 mb-4 text-red-500">
+        <div className="flex items-center gap-3 mb-4 text-red-500 shrink-0">
           <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
           </svg>
@@ -31,18 +32,18 @@ export default function BugReportModal() {
         <div className={`mb-6 space-y-3 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
           <p>Please make sure to check the following before submitting a bug:</p>
           <ul className="list-disc pl-5 space-y-1">
-            <li>The website only supports for laptop, no phone or ipad.</li>
-            <li>Question: Would it supports in the future?</li>
-            <li>Maybe, for the meantime, nope.</li>
+            <li>Question: The UI doesn't display properly on Chap 4 when using phone?</li>
+            <li>This application works best on laptop and highly recommend using a laptop</li>
+            <li>If you get stuck on a page, refresh the page</li>
             <li>Question: Why is the line so hard to click?</li>
             <li>There are too many line that sometime they overlay each other.</li>
-            <li>Can it be fix? Yes. Would it be fixed? Probably not. Why? I'm lazy</li>
+            <li>Can it be fix? Yes. Would it be fixed? Probably not. Why? I'm lazy:D</li>
           </ul>
           <p className="pt-2 font-medium">When filling out the form, please include exactly which chapter you were on!</p>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex justify-end gap-3 mt-6">
+        <div className="flex justify-end gap-3 mt-6 shrink-0">
           <button 
             onClick={() => setBugModalOpen(false)}
             className={`px-4 py-2 font-medium rounded-lg transition-colors ${

@@ -1,24 +1,44 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDiagramStore } from './store/diagramStore';
 import NavigationMenu from './components/NavigationMenu';
 import { SunIcon, MoonIcon } from './components/Icons'; 
 import BugReportModal from './components/BugReportModal';
 
-// Import your pages
 import LandingPage from './components/LandingPage';
 import Chapter1 from './components/Chapter1';
 import Chapter2 from './components/Chapter2';
 import Chapter3 from './components/Chapter3';
 import Chapter5 from './components/Chapter5';
 
-// Import your custom layout components
 import InstructionPanel from './components/InstructionPanel';
 import DiagramCanvas from './components/DiagramCanvas';
 import Sidebar from './components/Sidebar';
-import Chapter4_2 from './components/Chapter4Page'; // We will build the grid here!
+import Chapter4_2 from './components/Chapter4Page'; 
 
 function App() {
   const { theme, toggleTheme, toggleMenu, currentChapter, setBugModalOpen } = useDiagramStore();
+  
+  // --- RESPONSIVE STATE FOR CHAPTER 4.1 ---
+  const [isPanelOpen, setIsPanelOpen] = useState(true);   // Left Panel (Instructions)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Right Panel (Sidebar/Menu)
+
+  // Automatically close sidebars on smaller screens on initial load
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        setIsPanelOpen(false);
+        setIsSidebarOpen(false);
+      } else {
+        setIsPanelOpen(true);
+        setIsSidebarOpen(true);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Trigger on mount
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const renderChapterContent = () => {
     switch (currentChapter) {
       case 0: return <LandingPage />;
@@ -26,26 +46,68 @@ function App() {
       case 2: return <Chapter2 />;
       case 3: return <Chapter3 />;
       case 5: return <Chapter5 />;
-      case 4.1: // Previously Chapter 4
+      
+      case 4.1: // Responsive Interactive CPU Diagram
         return (
-          <>
-            <InstructionPanel />
-            <div className="flex-1 overflow-hidden">
-               <DiagramCanvas />
+          <div className="flex h-full w-full relative overflow-hidden">
+            
+            {/* ================= LEFT INSTRUCTION PANEL ================= */}
+            <div 
+              className={`
+                absolute left-0 lg:relative z-30 h-full transition-all duration-300 ease-in-out flex-shrink-0
+                ${isPanelOpen ? 'translate-x-0 w-80' : '-translate-x-full lg:translate-x-0 lg:w-0 overflow-hidden'}
+              `}
+            >
+              <div className={`w-80 h-full shadow-xl lg:shadow-none border-r ${theme === 'dark' ? 'border-slate-800' : 'border-slate-200'}`}>
+                <InstructionPanel onClose={() => setIsPanelOpen(false)} />
+              </div>
             </div>
-            <Sidebar />
-          </>
+
+            {/* ================= MAIN DIAGRAM CANVAS ================= */}
+            <div className="flex-1 flex flex-col relative min-w-0 h-full overflow-hidden z-10">
+              
+              <DiagramCanvas 
+                onToggleLeft={() => setIsPanelOpen(true)} 
+                onToggleRight={() => setIsSidebarOpen(true)} 
+              />
+              
+            </div>
+
+            {/* ================= RIGHT SIDEBAR ================= */}
+            <div 
+              className={`
+                absolute right-0 lg:relative z-30 h-full transition-all duration-300 ease-in-out flex-shrink-0
+                ${isSidebarOpen ? 'translate-x-0 w-80' : 'translate-x-full lg:translate-x-0 lg:w-0 overflow-hidden'}
+              `}
+            >
+              <div className={`w-80 h-full shadow-xl lg:shadow-none border-l ${theme === 'dark' ? 'border-slate-800' : 'border-slate-200'}`}>
+                <Sidebar onClose={() => setIsSidebarOpen(false)} />
+              </div>
+            </div>
+
+            {/* ================= MOBILE BACKDROP OVERLAY ================= */}
+            {(isSidebarOpen || isPanelOpen) && (
+              <div 
+                className="lg:hidden absolute inset-0 bg-slate-900/30 backdrop-blur-sm z-20 transition-opacity"
+                onClick={() => {
+                  setIsSidebarOpen(false);
+                  setIsPanelOpen(false);
+                }}
+              />
+            )}
+
+          </div>
         );
+
       case 4.2: // New Drag and Drop Pipeline
         return (
           <>
-            {/* NO InstructionPanel here! */}
             <div className="flex-1 overflow-hidden relative">
-               {/* This is where our Drag-and-Drop Grid will go */}
                <Chapter4_2 /> 
             </div>
           </>
         );
+        
       default: return <LandingPage />;
     }
   };
@@ -90,7 +152,6 @@ function App() {
         </header>
       )}
       
-
       {/* Main Content Area */}
       <main className="flex-1 flex overflow-hidden">
         {renderChapterContent()}

@@ -268,13 +268,12 @@ export const useDiagramStore = create((set, get) => ({
     });
   },
 
-  // 🛡️ INDESTRUCTIBLE FIX: Works beautifully no matter what you send it!
   setActiveInstruction: (inst, incomingArrays = []) => {
     const currentState = get();
     
     let fullAnswers = INSTRUCTION_ANSWERS[inst] || emptyAnswers;
     
-    // Fallback logic: If the panel didn't send arrays, use our Master Dictionary!
+    // Fallback logic: If the panel didn't send arrays, use Master Dictionary
     let sequences = { 1: [], 2: [], 3: [], 4: [] };
     if (incomingArrays && incomingArrays.length > 0) {
        incomingArrays.forEach((arr, i) => { sequences[i+1] = arr; });
@@ -305,7 +304,7 @@ export const useDiagramStore = create((set, get) => ({
         isAnimating: false, 
         animationId: currentState.animationId + 1, 
         answers: fullAnswers,
-        verificationState: null, // <-- ADD THIS: Clears form feedback on instruction change
+        verificationState: null,
         showAnswerKey: false
     });
   },
@@ -344,7 +343,6 @@ export const useDiagramStore = create((set, get) => ({
   
   resetVerification: () => set({ verificationState: null }),
 
-// Update your verifyPracticeSubmission function:
 verifyPracticeSubmission: () => {
     try {
       const currentState = get();
@@ -365,7 +363,7 @@ verifyPracticeSubmission: () => {
       const opcode = parsed.opcode;
       const groundTruth = generateAnswerKey(parsed) || {}; // Fallback to empty object to prevent crashes
 
-// 1. Verify Machine Code (Safely stringify and strip spaces)
+      // 1. Verify Machine Code (Safely stringify and strip spaces)
       const cleanUserMC = String(currentState.practiceMachineCode || '').replace(/\s/g, '').toUpperCase();
       const cleanCorrectMC = String(groundTruth.machineCode || '').replace(/\s/g, '').toUpperCase();
       const isMachineCodeCorrect = cleanUserMC === cleanCorrectMC && !cleanUserMC.includes('X');
@@ -441,7 +439,6 @@ verifyPracticeSubmission: () => {
       });
 
       return isFullyCorrect;} catch (error) {
-      // If ANYTHING fails, it logs the error instead of blanking your screen!
       console.error("Verification crashed:", error);
       alert("Verification failed. Please check the browser console (F12) for the exact error.");
       return false;

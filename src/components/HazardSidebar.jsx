@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Xarrow, { Xwrapper } from 'react-xarrows'; 
-import { useDiagramStore } from '../store/diagramStore'; // NEW: Import the store!
+import { useDiagramStore } from '../store/diagramStore';
 
 const XarrowComponent = Xarrow.default || Xarrow;
 
@@ -206,9 +206,8 @@ const getMiniGridStyle = (cell) => {
 };
 
 // --- SIDEBAR ARCHITECTURE ---
-// Note: We removed the `theme` prop here because we are fetching it directly from the store now!
-const HazardSidebar = ({ setGridInstructions, userGrid, exerciseMode = 'stall' }) => {
-  const { theme } = useDiagramStore(); // <-- Pulling dynamic theme directly
+const HazardSidebar = ({ setGridInstructions, userGrid, onClose, exerciseMode = 'stall' }) => {
+  const { theme } = useDiagramStore();
   
   const [problem, setProblem] = useState(generateMipsProblem);
   const [userAnswers, setUserAnswers] = useState({ hazards: '', stalls: '', cycles: '', mux: '' });
@@ -288,12 +287,24 @@ const HazardSidebar = ({ setGridInstructions, userGrid, exerciseMode = 'stall' }
   const currentMatrix = exerciseMode === 'stall' ? problem.stallSolutionGrid : problem.fwdSolutionGrid;
 
   return (
-    <div className={`w-96 h-full flex flex-col border-l shrink-0 overflow-y-auto ${bgTheme} ${borderTheme} shadow-xl z-50 relative`}>
+    <div className={`w-full h-full flex flex-col border-l shrink-0 overflow-y-auto overflow-x-hidden ${bgTheme} ${borderTheme} shadow-xl z-50 relative`}>
       <div className={`p-4 border-b font-bold text-lg tracking-wide flex justify-between items-center ${borderTheme} ${textTheme}`}>
         <span>Chapter 4.2</span>
         <span className="text-xs uppercase px-2 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 font-mono">
           {exerciseMode} mode
         </span>
+      </div>
+
+      <div className="flex justify-between items-center p-2 lg:hidden shrink-0 border-b border-slate-800">
+        <span className="text-xs font-bold uppercase tracking-wider ml-2 text-slate-400">
+          Hazard Menu
+        </span>
+        <button 
+          onClick={onClose} 
+          className="px-3 py-1.5 text-sm font-bold rounded-md transition-colors bg-slate-800 text-slate-300 hover:text-white hover:bg-slate-700"
+        >
+          ✕ Close
+        </button>
       </div>
 
       <div className="p-4 flex-1 flex flex-col gap-6">

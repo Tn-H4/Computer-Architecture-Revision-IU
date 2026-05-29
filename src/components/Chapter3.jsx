@@ -40,9 +40,7 @@ const MathFraction = ({ num, den, isDark }) => (
 // --- IEEE-754 HELPERS ---
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-// Format a 23-bit fraction in groups of 4 for readability: e.g. "100_1100_0000_..."
 const formatFraction = (fracBits) => {
-  // fracBits is a 23-char binary string
   const groups = [];
   for (let i = 0; i < 23; i += 4) {
     groups.push(fracBits.slice(i, i + 4));
@@ -50,12 +48,10 @@ const formatFraction = (fracBits) => {
   return groups.join('_');
 };
 
-// Format an 8-bit exponent in groups of 4
 const formatExponent = (expBits) => {
   return expBits.slice(0, 4) + '_' + expBits.slice(4);
 };
 
-// Convert IEEE-754 single-precision hex to its components and decimal value
 const parseIEEE754 = (hexStr) => {
   const bits = parseInt(hexStr, 16);
   const sign = (bits >>> 31) & 1;
@@ -63,13 +59,11 @@ const parseIEEE754 = (hexStr) => {
   const fracBits = bits & 0x7FFFFF;
   const fracBinStr = fracBits.toString(2).padStart(23, '0');
 
-  // Compute fraction value (mantissa - 1)
   let fracVal = 0;
   for (let i = 0; i < 23; i++) {
     if (fracBinStr[i] === '1') fracVal += Math.pow(2, -(i + 1));
   }
 
-  // Which powers of 2 contribute to the fraction
   const fracPowers = [];
   for (let i = 0; i < 23; i++) {
     if (fracBinStr[i] === '1') fracPowers.push(-(i + 1));
@@ -93,19 +87,15 @@ const parseIEEE754 = (hexStr) => {
   };
 };
 
-// Convert a positive decimal number to IEEE-754 single-precision hex
 const toIEEE754 = (num) => {
   const sign = num < 0 ? 1 : 0;
   const absNum = Math.abs(num);
 
-  // Find exponent: largest power of 2 ≤ absNum
   const expVal = Math.floor(Math.log2(absNum));
   const expRaw = expVal + 127;
 
-  // Fraction: (absNum / 2^expVal) - 1
   const fracVal = absNum / Math.pow(2, expVal) - 1;
 
-  // Build 23-bit fraction string
   let remaining = fracVal;
   let fracBinStr = '';
   for (let i = 0; i < 23; i++) {
@@ -118,7 +108,6 @@ const toIEEE754 = (num) => {
   const bits = (sign << 31) | (expRaw << 23) | fracBits;
   const hexStr = (bits >>> 0).toString(16).toUpperCase().padStart(8, '0');
 
-  // Which powers of 2 in the fraction
   const fracPowers = [];
   for (let i = 0; i < 23; i++) {
     if (fracBinStr[i] === '1') fracPowers.push(-(i + 1));
@@ -138,9 +127,7 @@ const toIEEE754 = (num) => {
   };
 };
 
-// Pool of "nice" IEEE-754 numbers that have clean binary fractions
 const IEEE754_POOL = [
-  // Format: { decimal, hex } — only numbers with exact binary representation
   { decimal: 12.75,    hex: '414C0000' },
   { decimal: 6.5,      hex: '40D00000' },
   { decimal: 0.75,     hex: '3F400000' },
@@ -158,13 +145,10 @@ const IEEE754_POOL = [
   { decimal: 100.0,    hex: '42C80000' },
 ];
 
-// --- VARIABLE GENERATOR ---
 const generateVariables = () => {
-  // Q1: Hex → Decimal  (pick a random entry)
   const q1Entry = pick(IEEE754_POOL);
   const q1 = parseIEEE754(q1Entry.hex);
 
-  // Q2: Decimal → Hex  (pick a DIFFERENT random entry)
   let q2Entry;
   do { q2Entry = pick(IEEE754_POOL); } while (q2Entry.hex === q1Entry.hex);
   const q2 = toIEEE754(q2Entry.decimal);
@@ -172,11 +156,11 @@ const generateVariables = () => {
   return { q1: { ...q1, inputHex: q1Entry.hex }, q2: { ...q2, inputDecimal: q2Entry.decimal } };
 };
 
-// Format fraction powers as a math expression, e.g. "2⁻¹ + 2⁻⁴ + 2⁻⁵"
 const formatPowers = (powers) => {
   if (powers.length === 0) return '0';
   return powers.map(p => `2^${p}`).join(' + ');
 };
+
 const superscript = (n) => {
   const map = { '-': '⁻', '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
   return String(n).split('').map(c => map[c] || c).join('');
@@ -208,12 +192,10 @@ const Chapter3 = () => {
   const [revealed, setRevealed] = useState(emptyRevealed);
 
   const TARGET_ANSWERS = {
-    // Q1: hex → decimal
     q1s:       { value: vars.q1.sign.toString(),               type: 'string' },
     q1exp:     { value: vars.q1.expRaw.toString(),             type: 'string' },
     q1frac:    { value: vars.q1.fracVal.toString(),            type: 'number', tolerance: 0.0001 },
     q1decimal: { value: vars.q1.decimalVal,                    type: 'number', tolerance: 0.01 },
-    // Q2: decimal → hex
     q2s:       { value: vars.q2.sign.toString(),               type: 'string' },
     q2exp:     { value: vars.q2.expVal.toString(),             type: 'string' },
     q2expraw:  { value: vars.q2.expRaw.toString(),             type: 'string' },
@@ -253,13 +235,11 @@ const Chapter3 = () => {
       return inp.toLowerCase() === target.value.toString().toLowerCase();
     }
     if (target.type === 'binary') {
-      // Accept with or without underscores/spaces
       return inp.replace(/[_\s]/g, '') === target.value.replace(/[_\s]/g, '');
     }
     if (target.type === 'hex') {
       return normalizeHex(inp) === normalizeHex(target.value);
     }
-    // number
     const num = parseFloat(inp);
     if (isNaN(num)) return false;
     return Math.abs(num - target.value) / (Math.abs(target.value) + 1e-9) <= (target.tolerance || 0.01);
@@ -293,50 +273,45 @@ const Chapter3 = () => {
     monoBox:      isDark ? 'bg-slate-900 border-slate-600 text-blue-300'          : 'bg-slate-100 border-slate-300 text-blue-700',
   };
 
-  // Reusable input + check + reveal row
-  const renderInputRow = (field, placeholder, width = 'w-44', suffix = null) => (
-    <div className="flex items-center gap-4 flex-wrap">
+  // Reusable input + check + reveal row with proper max-widths and responsive handling
+  const renderInputRow = (field, placeholder, width = 'w-40 md:w-44', suffix = null) => (
+    <div className="flex items-center gap-3 flex-wrap w-full max-w-full">
       <input
         type="text"
         value={answers[field]}
         onChange={(e) => handleInputChange(e, field)}
         placeholder={placeholder}
-        className={`${width} px-4 py-3 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono ${themeVars.inputBg}`}
+        className={`${width} max-w-full px-4 py-2.5 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono ${themeVars.inputBg}`}
       />
       {suffix && <span className="font-medium">{suffix}</span>}
       {isSubmitted && scores[field] === true  && <CheckIcon />}
       {isSubmitted && scores[field] === false && <CrossIcon />}
       {shouldShowKey && (
-        <div className="flex items-center gap-2 ml-2">
-          <button onClick={() => toggleReveal(field)} className="p-2 rounded-full text-amber-500 hover:bg-amber-500/10 transition-colors" title="Reveal Answer">
+        <div className="flex items-center gap-2 min-w-0 max-w-full">
+          <button onClick={() => toggleReveal(field)} className="p-1.5 flex-shrink-0 rounded-full text-amber-500 hover:bg-amber-500/10 transition-colors" title="Reveal Answer">
             <KeyIcon />
           </button>
           {revealed[field] && (
-            <span className={`px-3 py-1 rounded-md border font-bold font-mono ${themeVars.yellowBox}`}>
-              {TARGET_ANSWERS[field].value.toString()}
-            </span>
+            <div className="overflow-x-auto max-w-full pb-1">
+              <span className={`inline-block px-2 py-1 rounded-md border font-bold font-mono text-sm whitespace-nowrap ${themeVars.yellowBox}`}>
+                {TARGET_ANSWERS[field].value.toString()}
+              </span>
+            </div>
           )}
         </div>
       )}
     </div>
   );
 
-  // ---- Q1 step-by-step explanation ----
   const q1 = vars.q1;
   const q1FracDisplay = formatFraction(q1.fracBinStr);
   const q1ExpDisplay  = formatExponent(q1.expBinStr);
-  const q1PowersExpr  = q1.fracPowers.length
-    ? q1.fracPowers.map(p => <span key={p}>2<sup>{p}</sup></span>).reduce((a, b) => <>{a} + {b}</>)
-    : <span>0</span>;
-
-  // ---- Q2 step-by-step explanation ----
+  
   const q2 = vars.q2;
   const q2Decimal = q2.inputDecimal;
-  // Build a nice binary representation of the integer+fraction parts for step 2
   const q2IntPart  = Math.floor(q2Decimal);
   const q2FracPart = q2Decimal - q2IntPart;
   const q2IntBin   = q2IntPart.toString(2);
-  // fractional binary expansion (up to 8 digits for display)
   let q2FracBinDisplay = '';
   let rem = q2FracPart;
   for (let i = 0; i < 8; i++) { rem *= 2; q2FracBinDisplay += Math.floor(rem); rem -= Math.floor(rem); }
@@ -344,34 +319,34 @@ const Chapter3 = () => {
   const q2FracDisplay = formatFraction(q2.fracBinStr);
 
   return (
-    <div className={`h-screen w-full overflow-y-auto flex flex-col items-center p-6 md:p-10 pb-40 transition-colors duration-300 ${themeVars.containerBg}`}>
+    <div className={`h-screen w-full overflow-y-auto flex flex-col items-center p-4 md:p-10 pb-40 transition-colors duration-300 ${themeVars.containerBg}`}>
       <div className="w-full max-w-6xl">
 
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 mt-4">
-          <h1 className="text-3xl md:text-4xl font-bold">Chapter 3: IEEE-754 Floating Point</h1>
-          <div className="flex gap-4 items-center">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 mt-4">
+          <h1 className="text-2xl md:text-4xl font-bold">Chapter 3: IEEE-754 Floating Point</h1>
+          <div className="flex flex-wrap gap-3 items-center">
             <button
               onClick={handleRandomize}
               className="flex items-center gap-2 px-4 py-2 rounded-lg font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md transition-colors"
             >
-              <DiceIcon /> Randomize Numbers
+              <DiceIcon /> Randomize
             </button>
             <div className={`flex p-1 rounded-lg shadow-sm ${isDark ? 'bg-slate-800' : 'bg-slate-200/80 border border-slate-300'}`}>
               <button
                 onClick={() => handleModeChange('practice')}
-                className={`px-4 py-2 rounded-md font-semibold transition-all ${mode === 'practice' ? 'bg-blue-600 text-white shadow' : isDark ? 'text-slate-400 hover:text-slate-300' : 'text-slate-500 hover:text-slate-800'}`}
-              >Practice Mode</button>
+                className={`px-3 md:px-4 py-2 rounded-md font-semibold transition-all text-sm md:text-base ${mode === 'practice' ? 'bg-blue-600 text-white shadow' : isDark ? 'text-slate-400 hover:text-slate-300' : 'text-slate-500 hover:text-slate-800'}`}
+              >Practice</button>
               <button
                 onClick={() => handleModeChange('test')}
-                className={`px-4 py-2 rounded-md font-semibold transition-all ${mode === 'test' ? 'bg-blue-600 text-white shadow' : isDark ? 'text-slate-400 hover:text-slate-300' : 'text-slate-500 hover:text-slate-800'}`}
+                className={`px-3 md:px-4 py-2 rounded-md font-semibold transition-all text-sm md:text-base ${mode === 'test' ? 'bg-blue-600 text-white shadow' : isDark ? 'text-slate-400 hover:text-slate-300' : 'text-slate-500 hover:text-slate-800'}`}
               >Test Mode</button>
             </div>
           </div>
         </div>
 
-        {/* ==================== QUESTION 1: Hex → Decimal ==================== */}
-        <div className={`p-8 sm:p-10 rounded-2xl border shadow-lg mb-8 ${themeVars.cardBg}`}>
+        {/* ==================== QUESTION 1 ==================== */}
+        <div className={`p-6 md:p-10 rounded-2xl border shadow-lg mb-8 overflow-hidden ${themeVars.cardBg}`}>
           <h2 className={`text-2xl font-bold mb-4 ${themeVars.title}`}>Question 1: Hex → Decimal</h2>
           <p className="text-lg mb-6">
             What is the decimal value of the IEEE-754 single-precision floating point number{' '}
@@ -380,10 +355,9 @@ const Chapter3 = () => {
             </code>?
           </p>
 
-          {/* IEEE-754 bit layout visual */}
-          <div className={`mb-8 p-4 rounded-xl border font-mono text-sm overflow-x-auto ${themeVars.blueBox}`}>
+          <div className={`mb-8 p-4 rounded-xl border font-mono text-sm overflow-x-auto w-full ${themeVars.blueBox}`}>
             <div className={`text-xs font-bold mb-1 ${themeVars.blueBoxText}`}>Single-Precision (32-bit) Layout:</div>
-            <div className="flex gap-0 text-center">
+            <div className="flex gap-0 text-center min-w-max">
               <div className="flex flex-col items-center">
                 <div className={`px-2 py-1 border-r ${isDark ? 'bg-pink-900/40 text-pink-300 border-slate-600' : 'bg-pink-50 text-pink-600 border-slate-300'} font-bold`}>S</div>
                 <div className="text-xs opacity-60 mt-1">1 bit</div>
@@ -402,14 +376,13 @@ const Chapter3 = () => {
             </div>
           </div>
 
-          <div className="space-y-10 text-lg">
+          <div className="space-y-10 text-lg w-full">
 
-            {/* Q1a: Sign bit */}
             <div>
               <p className="font-semibold mb-4">a) What is the <span className="text-pink-500">Sign</span> bit (S)?</p>
               {renderInputRow('q1s', '0 or 1', 'w-32')}
               {revealed.q1s && (
-                <div className={`mt-4 p-5 rounded-xl border text-base ${themeVars.answerKeyBg}`}>
+                <div className={`mt-4 p-5 rounded-xl border text-base w-full overflow-x-auto ${themeVars.answerKeyBg}`}>
                   <h4 className={`font-bold mb-2 ${themeVars.stepHeader}`}>Step-by-Step Solution:</h4>
                   <p>Convert <code className="font-mono">0x{q1.inputHex}</code> to binary.</p>
                   <p className="mt-2">The <strong>most significant bit (bit 31)</strong> is the sign bit.</p>
@@ -423,12 +396,11 @@ const Chapter3 = () => {
               )}
             </div>
 
-            {/* Q1b: Exponent */}
             <div>
               <p className="font-semibold mb-4">b) What is the <span className="text-amber-500">Exponent</span> field value (in decimal)?</p>
               {renderInputRow('q1exp', 'decimal', 'w-36')}
               {revealed.q1exp && (
-                <div className={`mt-4 p-5 rounded-xl border text-base ${themeVars.answerKeyBg}`}>
+                <div className={`mt-4 p-5 rounded-xl border text-base w-full overflow-x-auto ${themeVars.answerKeyBg}`}>
                   <h4 className={`font-bold mb-2 ${themeVars.stepHeader}`}>Step-by-Step Solution:</h4>
                   <p>Exponent bits (bits 30–23): <code className="font-mono">{q1.expBinStr}</code></p>
                   <p className="mt-2">Formatted: <code className="font-mono">{q1ExpDisplay}</code></p>
@@ -442,12 +414,11 @@ const Chapter3 = () => {
               )}
             </div>
 
-            {/* Q1c: Fraction */}
             <div>
               <p className="font-semibold mb-4">c) What is the <span className="text-emerald-500">Fraction</span> value (as a decimal number)?</p>
               {renderInputRow('q1frac', 'e.g. 0.59375', 'w-44')}
               {revealed.q1frac && (
-                <div className={`mt-4 p-5 rounded-xl border text-base ${themeVars.answerKeyBg}`}>
+                <div className={`mt-4 p-5 rounded-xl border text-base w-full overflow-x-auto ${themeVars.answerKeyBg}`}>
                   <h4 className={`font-bold mb-2 ${themeVars.stepHeader}`}>Step-by-Step Solution:</h4>
                   <p>Fraction bits (bits 22–0): <code className="font-mono">{q1FracDisplay}</code><sub>2</sub></p>
                   <p className="mt-3">
@@ -461,7 +432,7 @@ const Chapter3 = () => {
                       : '0'
                     }
                   </p>
-                  <p className="mt-1">
+                  <p className="mt-1 whitespace-nowrap">
                     F = {q1.fracPowers.length > 0
                       ? q1.fracPowers.map((p, i) => (
                           <span key={p}>
@@ -476,21 +447,20 @@ const Chapter3 = () => {
               )}
             </div>
 
-            {/* Q1d: Final decimal value */}
             <div>
               <p className="font-semibold mb-4">d) What is the final <strong>decimal value</strong> X?</p>
               {renderInputRow('q1decimal', 'decimal value', 'w-44')}
               {revealed.q1decimal && (
-                <div className={`mt-4 p-5 rounded-xl border text-base ${themeVars.answerKeyBg}`}>
+                <div className={`mt-4 p-5 rounded-xl border text-base w-full overflow-x-auto ${themeVars.answerKeyBg}`}>
                   <h4 className={`font-bold mb-2 ${themeVars.stepHeader}`}>Step-by-Step Solution:</h4>
                   <p>Apply the IEEE-754 formula:</p>
-                  <p className="mt-2">
+                  <p className="mt-2 whitespace-nowrap">
                     X = (−1)<sup>{q1.sign}</sup> × (1 + {q1.fracVal.toFixed(6)}) × 2<sup>{q1.expRaw} − 127</sup>
                   </p>
-                  <p className="mt-2">
+                  <p className="mt-2 whitespace-nowrap">
                     X = (−1)<sup>{q1.sign}</sup> × {(1 + q1.fracVal).toFixed(6)} × 2<sup>{q1.expVal}</sup>
                   </p>
-                  <p className="mt-2">
+                  <p className="mt-2 whitespace-nowrap">
                     X = {q1.sign === 0 ? '' : '−'}{(1 + q1.fracVal).toFixed(6)} × {Math.pow(2, q1.expVal)}
                   </p>
                   <p className={`mt-3 font-bold text-xl ${themeVars.stepHeader}`}>
@@ -503,8 +473,8 @@ const Chapter3 = () => {
           </div>
         </div>
 
-        {/* ==================== QUESTION 2: Decimal → Hex ==================== */}
-        <div className={`p-8 sm:p-10 rounded-2xl border shadow-lg mb-10 ${themeVars.cardBg}`}>
+        {/* ==================== QUESTION 2 ==================== */}
+        <div className={`p-8 sm:p-10 rounded-2xl border shadow-lg mb-10 overflow-hidden ${themeVars.cardBg}`}>
           <h2 className={`text-2xl font-bold mb-4 ${themeVars.title}`}>Question 2: Decimal → IEEE-754 Hex</h2>
           <p className="text-lg mb-6">
             What is the IEEE-754 single-precision representation of{' '}
@@ -513,14 +483,13 @@ const Chapter3 = () => {
             </code>?
           </p>
 
-          <div className="space-y-10 text-lg">
+          <div className="space-y-10 text-lg w-full">
 
-            {/* Q2a: Sign bit */}
             <div>
               <p className="font-semibold mb-4">a) What is the <span className="text-pink-500">Sign</span> bit (S)?</p>
               {renderInputRow('q2s', '0 or 1', 'w-32')}
               {revealed.q2s && (
-                <div className={`mt-4 p-5 rounded-xl border text-base ${themeVars.answerKeyBg}`}>
+                <div className={`mt-4 p-5 rounded-xl border text-base w-full overflow-x-auto ${themeVars.answerKeyBg}`}>
                   <h4 className={`font-bold mb-2 ${themeVars.stepHeader}`}>Step-by-Step Solution:</h4>
                   <p>{q2Decimal} is a <strong>{q2.sign === 0 ? 'positive' : 'negative'}</strong> number.</p>
                   <p className={`mt-2 font-semibold ${themeVars.stepHeader}`}>S = <strong>{q2.sign}</strong></p>
@@ -528,14 +497,13 @@ const Chapter3 = () => {
               )}
             </div>
 
-            {/* Q2b: Exponent (actual, before bias) */}
             <div>
               <p className="font-semibold mb-4">
                 b) Convert {q2Decimal} to binary. What is the <span className="text-amber-500">actual exponent</span> (the power of 2)?
               </p>
               {renderInputRow('q2exp', 'e.g. 3', 'w-32')}
               {revealed.q2exp && (
-                <div className={`mt-4 p-5 rounded-xl border text-base ${themeVars.answerKeyBg}`}>
+                <div className={`mt-4 p-5 rounded-xl border text-base w-full overflow-x-auto ${themeVars.answerKeyBg}`}>
                   <h4 className={`font-bold mb-2 ${themeVars.stepHeader}`}>Step-by-Step Solution:</h4>
                   <p>Convert {q2Decimal} to binary:</p>
                   <p className="mt-2">
@@ -551,7 +519,6 @@ const Chapter3 = () => {
               )}
             </div>
 
-            {/* Q2c: Stored exponent (biased) */}
             <div>
               <p className="font-semibold mb-4">
                 c) What is the <span className="text-amber-500">stored (biased) Exponent</span> field value?
@@ -559,7 +526,7 @@ const Chapter3 = () => {
               </p>
               {renderInputRow('q2expraw', 'decimal', 'w-36')}
               {revealed.q2expraw && (
-                <div className={`mt-4 p-5 rounded-xl border text-base ${themeVars.answerKeyBg}`}>
+                <div className={`mt-4 p-5 rounded-xl border text-base w-full overflow-x-auto ${themeVars.answerKeyBg}`}>
                   <h4 className={`font-bold mb-2 ${themeVars.stepHeader}`}>Step-by-Step Solution:</h4>
                   <p>
                     Stored Exponent = Actual Exponent + Bias = {q2.expVal} + 127 = <strong>{q2.expRaw}</strong>
@@ -571,14 +538,13 @@ const Chapter3 = () => {
               )}
             </div>
 
-            {/* Q2d: Fraction bits */}
             <div>
               <p className="font-semibold mb-4">
                 d) What are the <span className="text-emerald-500">Fraction</span> bits? (23-bit binary string)
               </p>
               {renderInputRow('q2frac', '23-bit binary', 'w-64')}
               {revealed.q2frac && (
-                <div className={`mt-4 p-5 rounded-xl border text-base ${themeVars.answerKeyBg}`}>
+                <div className={`mt-4 p-5 rounded-xl border text-base w-full overflow-x-auto ${themeVars.answerKeyBg}`}>
                   <h4 className={`font-bold mb-2 ${themeVars.stepHeader}`}>Step-by-Step Solution:</h4>
                   <p>
                     In normalized form: 1.<strong>{q2FracDisplay}</strong> × 2<sup>{q2.expVal}</sup>
@@ -596,18 +562,17 @@ const Chapter3 = () => {
               )}
             </div>
 
-            {/* Q2e: Final hex */}
             <div>
               <p className="font-semibold mb-4">
                 e) What is the final <strong>IEEE-754 hex representation</strong>?
               </p>
               {renderInputRow('q2hex', '0x...', 'w-44')}
               {revealed.q2hex && (
-                <div className={`mt-4 p-5 rounded-xl border text-base ${themeVars.answerKeyBg}`}>
+                <div className={`mt-4 p-5 rounded-xl border text-base w-full overflow-x-auto ${themeVars.answerKeyBg}`}>
                   <h4 className={`font-bold mb-2 ${themeVars.stepHeader}`}>Step-by-Step Solution:</h4>
                   <p><strong>Step 1:</strong> Assemble all 32 bits:</p>
-                  <div className={`mt-3 p-3 rounded-lg border font-mono text-sm overflow-x-auto ${themeVars.blueBox}`}>
-                    <div className="flex gap-2 flex-wrap">
+                  <div className={`mt-3 p-3 rounded-lg border font-mono text-sm w-full overflow-x-auto ${themeVars.blueBox}`}>
+                    <div className="flex gap-2 min-w-max">
                       <span className={`px-2 py-1 rounded ${isDark ? 'bg-pink-900/40 text-pink-300' : 'bg-pink-50 text-pink-600'}`}>
                         {q2.sign}
                       </span>
@@ -618,12 +583,12 @@ const Chapter3 = () => {
                         {q2.fracBinStr}
                       </span>
                     </div>
-                    <div className="mt-2 text-xs opacity-70">
+                    <div className="mt-2 text-xs opacity-70 whitespace-nowrap">
                       S={q2.sign} | Exp={q2.expBinStr} ({q2.expRaw}) | Frac={q2FracDisplay}
                     </div>
                   </div>
                   <p className="mt-4"><strong>Step 2:</strong> Group into 4-bit nibbles and convert to hex:</p>
-                  <p className="mt-2 font-mono text-sm">
+                  <p className="mt-2 font-mono text-sm whitespace-nowrap">
                     {(q2.sign.toString() + q2.expBinStr + q2.fracBinStr).match(/.{4}/g)?.join(' ')}
                   </p>
                   <p className={`mt-3 font-bold text-xl ${themeVars.stepHeader}`}>

@@ -42,10 +42,9 @@ const FeedbackInput = ({ name, value, onChange, isCorrect, correctValue, placeho
   </div>
 );
 
-const Sidebar = () => {
+const Sidebar = ({ onClose }) => {
   const [showHint, setShowHint] = useState(false);
 
-  // 👉 FIX: Extracted `theme` from the store!
   const { 
     interactionMode, practiceInput, verificationState, verifyPracticeSubmission,
     currentCycle, playCycle, prevCycle, skipToCycleEnd, clearWires, 
@@ -125,16 +124,29 @@ const Sidebar = () => {
     'Data Memory': [
       { key: 'mem_address', label: 'Address' }, { key: 'mem_writeData', label: 'Write data' }, { key: 'mem_readData', label: 'Read data' }
     ]
-  };    
+  };  
+    
 
   return (
-<> {/* <-- Add this opening fragment */}
+<> 
     
-    {/* Inject the custom scrollbar CSS here! */}
     <SidebarScrollbarStyles theme={theme} />
 
     {/* Swapped custom-scrollbar for sidebar-scroll to match the CSS */}
     <div className={`w-80 h-screen flex flex-col overflow-y-auto sidebar-scroll ${theme === 'dark' ? 'bg-slate-800' : 'bg-white'}`}>      
+      <div className="flex justify-end p-2 lg:hidden shrink-0 border-b border-slate-200 dark:border-slate-700">
+        <button 
+          onClick={onClose} 
+          className={`px-3 py-1.5 text-sm font-bold rounded-md transition-colors ${
+            theme === 'dark' 
+              ? 'bg-slate-700 text-slate-300 hover:text-white hover:bg-slate-600' 
+              : 'bg-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-300'
+          }`}
+        >
+          ✕ Close
+        </button>
+      </div>
+      
       {/* INSTRUCTION DISPLAY */}
       {interactionMode === 'explore' ? (
         <div className={`rounded-lg p-4 border shrink-0 transition-all ${

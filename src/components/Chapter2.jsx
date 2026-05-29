@@ -94,7 +94,6 @@ const RefTableModal = ({ onClose, isDark }) => {
           </button>
         </div>
         <div className="p-6 space-y-8">
-          {/* Register Numbers */}
           <div>
             <h3 className={m.sectionTitle}>Register Numbers</h3>
             <div className={m.tableWrap}>
@@ -104,7 +103,6 @@ const RefTableModal = ({ onClose, isDark }) => {
               </table>
             </div>
           </div>
-          {/* Function Fields */}
           <div>
             <h3 className={m.sectionTitle}>R-Format Function Fields</h3>
             <div className={m.tableWrap}>
@@ -114,7 +112,6 @@ const RefTableModal = ({ onClose, isDark }) => {
               </table>
             </div>
           </div>
-          {/* Opcode Fields */}
           <div>
             <h3 className={m.sectionTitle}>I-Format Opcode Fields</h3>
             <div className={m.tableWrap}>
@@ -166,10 +163,10 @@ const getFieldColors = (isDark) => isDark ? {
 const ColoredInstruction = ({ q, revealedObj, prefix, parentRevealKey, isDark }) => {
   const isRev = (field) => revealedObj[`${prefix}_${field}`] || (parentRevealKey && revealedObj[parentRevealKey]);
   const fieldColors = getFieldColors(isDark);
-const colorize = (field, text) => (
-  <span className={`transition-all duration-300 ${isRev(field) ? fieldColors[field] : `${isDark ? 'text-slate-200' : 'text-slate-700'} opacity-90`}`}>
-      {text}
-    </span>
+  const colorize = (field, text) => (
+    <span className={`transition-all duration-300 ${isRev(field) ? fieldColors[field] : `${isDark ? 'text-slate-200' : 'text-slate-700'} opacity-90`}`}>
+        {text}
+      </span>
   );
   if (q.type === 'R') {
     if (['sll', 'srl'].includes(q.n)) return <>{colorize('funct', q.n)} {colorize('rd', q.rdName)}, {colorize('rt', q.rtName)}, {colorize('shamt', q.shamt)}</>;
@@ -183,10 +180,10 @@ const colorize = (field, text) => (
 const ColoredBinary = ({ q, revealedObj, prefix, parentRevealKey, isDark }) => {
   const isRev = (field) => revealedObj[`${prefix}_${field}`] || (parentRevealKey && revealedObj[parentRevealKey]);
   const fieldColors = getFieldColors(isDark);
-const colorize = (field, text) => (
-  <span className={`transition-all duration-300 ${isRev(field) ? fieldColors[field] : `${isDark ? 'text-slate-300' : 'text-slate-600'}`}`}>
-      {text}
-    </span>
+  const colorize = (field, text) => (
+    <span className={`transition-all duration-300 ${isRev(field) ? fieldColors[field] : `${isDark ? 'text-slate-300' : 'text-slate-600'}`}`}>
+        {text}
+      </span>
   );
   const binBlock = (num, bits) => (num >>> 0).toString(2).padStart(bits, '0');
 
@@ -420,6 +417,7 @@ const Chapter2 = () => {
     cardBg: isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-slate-300',
     inputBg: isDark ? 'bg-slate-900 border-slate-600 text-white' : 'bg-slate-50 border-slate-300 text-slate-900',
     answerKeyBg: isDark ? 'bg-emerald-900/20 border-emerald-700/40 text-slate-200' : 'bg-emerald-50 border-emerald-200 text-slate-800',
+    stepHeader: isDark ? 'text-emerald-400' : 'text-emerald-700',
     yellowBox: isDark ? 'text-amber-400 bg-amber-900/40 border-transparent' : 'text-amber-700 bg-amber-100 border-amber-300',
     blueBox: isDark ? 'bg-blue-900/20 border-blue-800 text-slate-200' : 'bg-blue-50 border-blue-200 text-slate-800',
     code: isDark ? 'bg-slate-700 text-slate-200 px-1.5 py-0.5 rounded' : 'bg-slate-200 text-slate-800 px-1.5 py-0.5 rounded',
@@ -439,14 +437,14 @@ const Chapter2 = () => {
     return TARGETS[id];
   };
 
-  const renderInput = (id, placeholder, width = "w-40") => (
-    <div className="flex items-center gap-3 flex-shrink-0">
-      <input type="text" value={answers[id] || ''} onChange={(e) => handleChange(id, e.target.value)} placeholder={placeholder} className={`${width} px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-center ${themeVars.inputBg}`} />
+  const renderInput = (id, placeholder, width = "w-40 md:w-48") => (
+    <div className="flex items-center gap-3 flex-wrap max-w-full">
+      <input type="text" value={answers[id] || ''} onChange={(e) => handleChange(id, e.target.value)} placeholder={placeholder} className={`${width} max-w-full px-4 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-center ${themeVars.inputBg}`} />
       {isSubmitted && (scores[id] ? <CheckIcon /> : <CrossIcon />)}
       {shouldShowKey && (
-        <div className="flex items-center gap-2">
-          <button onClick={() => toggleReveal(id)} className="p-1.5 rounded-full text-amber-500 hover:bg-amber-500/10 transition-colors" title="Reveal Answer"><KeyIcon /></button>
-          {revealed[id] && <span className={`px-2 py-1 rounded-md border font-bold font-mono text-sm whitespace-nowrap ${themeVars.yellowBox}`}>{getAnswerDisplay(id)}</span>}
+        <div className="flex items-center gap-2 max-w-full overflow-hidden">
+          <button onClick={() => toggleReveal(id)} className="p-1.5 flex-shrink-0 rounded-full text-amber-500 hover:bg-amber-500/10 transition-colors" title="Reveal Answer"><KeyIcon /></button>
+          {revealed[id] && <div className={`px-2 py-1 rounded-md border font-bold font-mono text-sm whitespace-nowrap overflow-x-auto ${themeVars.yellowBox}`}>{getAnswerDisplay(id)}</div>}
         </div>
       )}
     </div>
@@ -456,99 +454,103 @@ const Chapter2 = () => {
   const renderFormatBlock = (prefix, type) => {
     
     const renderFieldCell = (id, label, bits, flexClass, fieldKey) => {
-  const prefix = id.split('_')[0];
-  const parentKey = prefix === 'mc' ? 'mc_hex' : `${prefix}_inst`;
-  const isRev = revealed[parentKey];
-  const maxLen = Number(bits);
-  const fieldColors = getFieldColors(isDark); // ✅ your existing fix
-  const binId = `${id}_bin`;
+      const prefix = id.split('_')[0];
+      const parentKey = prefix === 'mc' ? 'mc_hex' : `${prefix}_inst`;
+      const isRev = revealed[parentKey];
+      const maxLen = Number(bits);
+      const fieldColors = getFieldColors(isDark);
+      const binId = `${id}_bin`;
 
-  // Compute the correct binary answer for the binary row (only used for mc_ fields)
-  const getBinAnswer = () => {
-    const val = getAnswerDisplay(id);
-    if (val === undefined || val === null) return '';
-    return (Number(val) >>> 0).toString(2).padStart(Number(bits), '0');
-  };
+      // Compute the correct binary answer for the binary row (only used for mc_ fields)
+      const getBinAnswer = () => {
+        const val = getAnswerDisplay(id);
+        if (val === undefined || val === null) return '';
+        return (Number(val) >>> 0).toString(2).padStart(Number(bits), '0');
+      };
 
-  return (
-    <div key={id} className={`${flexClass} flex flex-col border-r last:border-0 relative transition-all duration-300 ${isDark ? 'border-slate-600' : 'border-slate-300'} ${isRev ? fieldColors[fieldKey] : themeVars.inputBg}`}>
-      {/* Header */}
-      <div className={`py-1 text-center text-[10px] md:text-xs font-bold uppercase tracking-wider border-b ${isDark ? 'border-slate-600' : 'border-slate-300'}`}>
-        {label} <span className="opacity-60 font-normal">({bits})</span>
-      </div>
-
-      {/* Decimal row */}
-      <div className="flex flex-col items-center justify-center p-2 relative h-16">
-        <input
-          type="text"
-          value={answers[id] || ''}
-          onChange={(e) => handleChange(id, e.target.value.replace(/[^0-9-]/g, ''))}
-          maxLength={maxLen}
-          placeholder="Dec"
-          className={`w-full h-full text-center bg-transparent focus:outline-none font-mono text-base md:text-lg rounded transition-opacity duration-200 ${isDark ? 'text-white' : 'text-slate-900'} ${isRev ? 'opacity-0 pointer-events-none' : ''}`}
-        />
-        {isRev && (
-          <div className="absolute inset-0 flex items-center justify-center font-bold font-mono text-base md:text-lg pointer-events-none select-none">
-            {getAnswerDisplay(id)}
+      return (
+        <div key={id} className={`${flexClass} flex flex-col border-r last:border-0 relative transition-all duration-300 ${isDark ? 'border-slate-600' : 'border-slate-300'} ${isRev ? fieldColors[fieldKey] : themeVars.inputBg}`}>
+          {/* Header */}
+          <div className={`py-1 text-center text-[10px] md:text-xs font-bold uppercase tracking-wider border-b ${isDark ? 'border-slate-600' : 'border-slate-300'}`}>
+            {label} <span className="opacity-60 font-normal">({bits})</span>
           </div>
-        )}
-        {isSubmitted && (
-          <div className="absolute top-1 right-1 opacity-80 pointer-events-none">
-            {scores[id] ? <CheckIcon size={14} /> : <CrossIcon size={14} />}
-          </div>
-        )}
-      </div>
 
-      {/* Binary row — only shown for Part A (mc_ prefix) */}
-      {prefix === 'mc' && (
-        <>
-          <div className={`py-0.5 text-center text-[9px] font-semibold uppercase tracking-wider border-t border-b opacity-60 ${isDark ? 'border-slate-600' : 'border-slate-300'}`}>
-            binary
-          </div>
-          <div className="flex flex-col items-center justify-center px-1 py-2 relative h-14">
+          {/* Decimal row */}
+          <div className="flex flex-col items-center justify-center p-2 relative h-16">
             <input
               type="text"
-              value={answers[binId] || ''}
-              onChange={(e) => handleChange(binId, e.target.value.replace(/[^01]/g, ''))}
-              maxLength={Number(bits)}
-              placeholder={'0'.repeat(Number(bits))}
-              className={`w-full h-full text-center bg-transparent focus:outline-none font-mono text-[10px] md:text-xs rounded transition-opacity duration-200 tracking-widest ${isDark ? 'text-slate-300' : 'text-slate-700'} ${isRev ? 'opacity-0 pointer-events-none' : ''}`}
+              value={answers[id] || ''}
+              onChange={(e) => handleChange(id, e.target.value.replace(/[^0-9-]/g, ''))}
+              maxLength={maxLen}
+              placeholder="Dec"
+              className={`w-full h-full text-center bg-transparent focus:outline-none font-mono text-base md:text-lg rounded transition-opacity duration-200 ${isDark ? 'text-white' : 'text-slate-900'} ${isRev ? 'opacity-0 pointer-events-none' : ''}`}
             />
             {isRev && (
-              <div className="absolute inset-0 flex items-center justify-center font-bold font-mono text-[10px] md:text-xs pointer-events-none select-none tracking-widest">
-                {getBinAnswer()}
+              <div className="absolute inset-0 flex items-center justify-center font-bold font-mono text-base md:text-lg pointer-events-none select-none">
+                {getAnswerDisplay(id)}
               </div>
             )}
             {isSubmitted && (
               <div className="absolute top-1 right-1 opacity-80 pointer-events-none">
-                {scores[binId] ? <CheckIcon size={14} /> : <CrossIcon size={14} />}
+                {scores[id] ? <CheckIcon size={14} /> : <CrossIcon size={14} />}
               </div>
             )}
           </div>
-        </>
-      )}
-    </div>
-  );
-};
+
+          {/* Binary row — only shown for Part A (mc_ prefix) */}
+          {prefix === 'mc' && (
+            <>
+              <div className={`py-0.5 text-center text-[9px] font-semibold uppercase tracking-wider border-t border-b opacity-60 ${isDark ? 'border-slate-600' : 'border-slate-300'}`}>
+                binary
+              </div>
+              <div className="flex flex-col items-center justify-center px-1 py-2 relative h-14">
+                <input
+                  type="text"
+                  value={answers[binId] || ''}
+                  onChange={(e) => handleChange(binId, e.target.value.replace(/[^01]/g, ''))}
+                  maxLength={Number(bits)}
+                  placeholder={'0'.repeat(Number(bits))}
+                  className={`w-full h-full text-center bg-transparent focus:outline-none font-mono text-[10px] md:text-xs rounded transition-opacity duration-200 tracking-widest ${isDark ? 'text-slate-300' : 'text-slate-700'} ${isRev ? 'opacity-0 pointer-events-none' : ''}`}
+                />
+                {isRev && (
+                  <div className="absolute inset-0 flex items-center justify-center font-bold font-mono text-[10px] md:text-xs pointer-events-none select-none tracking-widest">
+                    {getBinAnswer()}
+                  </div>
+                )}
+                {isSubmitted && (
+                  <div className="absolute top-1 right-1 opacity-80 pointer-events-none">
+                    {scores[binId] ? <CheckIcon size={14} /> : <CrossIcon size={14} />}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      );
+    };
 
     if (type === 'R') {
       return (
-        <div className={`flex w-full border-2 rounded-xl overflow-hidden shadow-sm my-6 ${isDark ? 'border-slate-600' : 'border-slate-300'}`}>
-          {renderFieldCell(`${prefix}_op`, 'op', '6', 'flex-[1.2]', 'op')}
-          {renderFieldCell(`${prefix}_rs`, 'rs', '5', 'flex-1', 'rs')}
-          {renderFieldCell(`${prefix}_rt`, 'rt', '5', 'flex-1', 'rt')}
-          {renderFieldCell(`${prefix}_rd`, 'rd', '5', 'flex-1', 'rd')}
-          {renderFieldCell(`${prefix}_shamt`, 'shamt', '5', 'flex-1', 'shamt')}
-          {renderFieldCell(`${prefix}_funct`, 'funct', '6', 'flex-[1.2]', 'funct')}
+        <div className={`overflow-x-auto w-full my-6 pb-2`}>
+          <div className={`flex min-w-[500px] border-2 rounded-xl overflow-hidden shadow-sm ${isDark ? 'border-slate-600' : 'border-slate-300'}`}>
+            {renderFieldCell(`${prefix}_op`, 'op', '6', 'flex-[1.2]', 'op')}
+            {renderFieldCell(`${prefix}_rs`, 'rs', '5', 'flex-1', 'rs')}
+            {renderFieldCell(`${prefix}_rt`, 'rt', '5', 'flex-1', 'rt')}
+            {renderFieldCell(`${prefix}_rd`, 'rd', '5', 'flex-1', 'rd')}
+            {renderFieldCell(`${prefix}_shamt`, 'shamt', '5', 'flex-1', 'shamt')}
+            {renderFieldCell(`${prefix}_funct`, 'funct', '6', 'flex-[1.2]', 'funct')}
+          </div>
         </div>
       );
     } else {
       return (
-        <div className={`flex w-full border-2 rounded-xl overflow-hidden shadow-sm my-6 ${isDark ? 'border-slate-600' : 'border-slate-300'}`}>
-          {renderFieldCell(`${prefix}_op`, 'op', '6', 'flex-[1.2]', 'op')}
-          {renderFieldCell(`${prefix}_rs`, 'rs', '5', 'flex-1', 'rs')}
-          {renderFieldCell(`${prefix}_rt`, 'rt', '5', 'flex-1', 'rt')}
-          {renderFieldCell(`${prefix}_imm`, 'immediate', '16', 'flex-[3.2]', 'imm')}
+        <div className={`overflow-x-auto w-full my-6 pb-2`}>
+          <div className={`flex min-w-[500px] border-2 rounded-xl overflow-hidden shadow-sm ${isDark ? 'border-slate-600' : 'border-slate-300'}`}>
+            {renderFieldCell(`${prefix}_op`, 'op', '6', 'flex-[1.2]', 'op')}
+            {renderFieldCell(`${prefix}_rs`, 'rs', '5', 'flex-1', 'rs')}
+            {renderFieldCell(`${prefix}_rt`, 'rt', '5', 'flex-1', 'rt')}
+            {renderFieldCell(`${prefix}_imm`, 'immediate', '16', 'flex-[3.2]', 'imm')}
+          </div>
         </div>
       );
     }
@@ -607,7 +609,7 @@ const Chapter2 = () => {
         {/* ==================== TAB 1: MEMORY & ARRAYS ==================== */}
         {activeTab === 'memory' && (
           <div className="space-y-8">
-            <div className={`p-8 rounded-2xl border shadow-lg ${themeVars.cardBg}`}>
+            <div className={`p-6 md:p-8 rounded-2xl border shadow-lg ${themeVars.cardBg}`}>
               <h2 className="text-2xl font-bold mb-4 text-blue-500">Part A: Address Mapping</h2>
               <p>Given the following <strong>Big-Endian</strong> memory map. Assume <code className={themeVars.code}>$t0</code> stores <strong>8</strong>, and <code className={themeVars.code}>$s0</code> stores <strong>0xCAFEFACE</strong>.</p>
               <div className="grid grid-cols-4 md:grid-cols-8 gap-2 my-6 font-mono text-center">
@@ -630,9 +632,9 @@ const Chapter2 = () => {
                       }</p>
                       {renderInput(`mem_${id}`, '0x...')}
                       {revealed[`mem_${id}`] && (
-                        <div className={`mt-3 p-4 rounded-xl border text-sm md:text-base ${themeVars.answerKeyBg}`}>
-                          <strong className="text-emerald-500 dark:text-emerald-400 block mb-1">Step-by-Step Solution:</strong>
-                          {vars.memExpl[id]}
+                        <div className={`mt-4 p-4 md:p-5 rounded-xl border text-sm md:text-base overflow-x-auto ${themeVars.answerKeyBg}`}>
+                          <h4 className={`font-bold mb-2 ${themeVars.stepHeader}`}>Step-by-Step Solution:</h4>
+                          <p>{vars.memExpl[id]}</p>
                         </div>
                       )}
                     </div>
@@ -648,9 +650,9 @@ const Chapter2 = () => {
                       }</p>
                       {renderInput(`mem_${id}`, id === 'g' ? 'e.g. Error' : '0x..')}
                       {revealed[`mem_${id}`] && (
-                        <div className={`mt-3 p-4 rounded-xl border text-sm md:text-base ${themeVars.answerKeyBg}`}>
-                          <strong className="text-emerald-500 dark:text-emerald-400 block mb-1">Step-by-Step Solution:</strong>
-                          {vars.memExpl[id]}
+                        <div className={`mt-4 p-4 md:p-5 rounded-xl border text-sm md:text-base overflow-x-auto ${themeVars.answerKeyBg}`}>
+                          <h4 className={`font-bold mb-2 ${themeVars.stepHeader}`}>Step-by-Step Solution:</h4>
+                          <p>{vars.memExpl[id]}</p>
                         </div>
                       )}
                     </div>
@@ -659,11 +661,13 @@ const Chapter2 = () => {
               </div>
             </div>
 
-            <div className={`p-8 rounded-2xl border shadow-lg ${themeVars.cardBg}`}>
+            <div className={`p-6 md:p-8 rounded-2xl border shadow-lg ${themeVars.cardBg}`}>
               <h2 className="text-2xl font-bold mb-4 text-blue-500">Part B: Array Manipulation</h2>
               <p className="mb-4">Assume an array <strong>[{vars.arrVars.v1}, {vars.arrVars.v2}, {vars.arrVars.v3}]</strong> with base address in <code className={themeVars.code}>$t0</code>. Final decimal values?</p>
-              <div className={`p-4 rounded-lg font-mono mb-6 ${themeVars.blueBox} inline-block`}>
-                lh $s0, 2($t0)<br/>lh $s1, 6($t0)<br/>add $s3, $s1, $s0<br/>sb $s3, 8($t0)<br/>lh $s4, 10($t0)
+              <div className={`p-4 rounded-lg font-mono mb-6 overflow-x-auto ${themeVars.blueBox} inline-block`}>
+                <div className="whitespace-pre">
+                  lh $s0, 2($t0)<br/>lh $s1, 6($t0)<br/>add $s3, $s1, $s0<br/>sb $s3, 8($t0)<br/>lh $s4, 10($t0)
+                </div>
               </div>
               <div className="grid md:grid-cols-3 gap-8 text-lg">
                 {['s0', 's1', 's4'].map(reg => (
@@ -671,9 +675,9 @@ const Chapter2 = () => {
                     <p className="font-semibold mb-2">${reg} Value:</p>
                     {renderInput(`arr_${reg}`, 'e.g. 1024', 'w-full md:w-40')}
                     {revealed[`arr_${reg}`] && (
-                      <div className={`mt-3 p-4 rounded-xl border text-sm md:text-base ${themeVars.answerKeyBg}`}>
-                        <strong className="text-emerald-500 dark:text-emerald-400 block mb-1">Explanation:</strong>
-                        {vars.arrExpl[reg]}
+                      <div className={`mt-4 p-4 md:p-5 rounded-xl border text-sm md:text-base overflow-x-auto ${themeVars.answerKeyBg}`}>
+                        <h4 className={`font-bold mb-2 ${themeVars.stepHeader}`}>Step-by-Step Solution:</h4>
+                        <p>{vars.arrExpl[reg]}</p>
                       </div>
                     )}
                   </div>
@@ -686,8 +690,10 @@ const Chapter2 = () => {
         {/* ==================== TAB 2: BITWISE LOGIC ==================== */}
         {activeTab === 'bitwise' && (
           <div className="space-y-8">
-            <div className={`p-8 rounded-2xl border shadow-lg ${themeVars.cardBg}`}>
+            <div className={`p-6 md:p-8 rounded-2xl border shadow-lg ${themeVars.cardBg}`}>
               <h2 className="text-2xl font-bold mb-4 text-blue-500">Part A: Core Logical Operations</h2>
+              
+              {/* Question text wrapping normally */}
               <p className="mb-6">Assume <code className={themeVars.code}>$s0 = {toHex(vars.bitVars.v0, 8)}</code> and <code className={themeVars.code}>$s1 = {toHex(vars.bitVars.v1, 8)}</code>. What is the value of <code className={themeVars.code}>$s2</code> (in hex)?</p>
               
               <div className="grid md:grid-cols-2 gap-8 text-lg">
@@ -697,13 +703,14 @@ const Chapter2 = () => {
                   { id: 'a3', code: `3. or $s2, $s0, $s1` },
                   { id: 'a4', code: `4. andi $s2, $s0, ${vars.bitVars.imm}` }
                 ].map(({ id, code }) => (
-                  <div key={id}>
-                    <p className="font-mono mb-2">{code}</p>
+                  <div key={id} className="min-w-0">
+                    <p className="font-mono mb-2 break-all">{code}</p>
                     {renderInput(`bit_${id}`, '0x...')}
                     {revealed[`bit_${id}`] && (
-                      <div className={`mt-3 p-4 rounded-xl border overflow-x-auto ${themeVars.answerKeyBg}`}>
-                        <strong className="text-emerald-500 dark:text-emerald-400 block mb-2 text-sm md:text-base">Binary Breakdown:</strong>
-                        <pre className="font-mono text-xs leading-relaxed">{vars.bitExpl[id]}</pre>
+                      <div className={`mt-4 p-4 md:p-5 rounded-xl border overflow-x-auto ${themeVars.answerKeyBg}`}>
+                        <h4 className={`font-bold mb-2 ${themeVars.stepHeader}`}>Step-by-Step Solution:</h4>
+                        {/* Step by step blocks have horizontal scroll so formulas/code don't break UI */}
+                        <pre className="font-mono text-xs md:text-sm leading-relaxed overflow-x-auto pb-2">{vars.bitExpl[id]}</pre>
                       </div>
                     )}
                   </div>
@@ -711,26 +718,29 @@ const Chapter2 = () => {
               </div>
             </div>
 
-            <div className={`p-8 rounded-2xl border shadow-lg ${themeVars.cardBg}`}>
+            <div className={`p-6 md:p-8 rounded-2xl border shadow-lg ${themeVars.cardBg}`}>
               <h2 className="text-2xl font-bold mb-4 text-blue-500">Part B: Instruction Sequences</h2>
-              <p className="mb-6">Find the final value of <code className={themeVars.code}>$t2</code> if <code className={themeVars.code}>$t0 = {toHex(vars.seqVars.v0, 8)}</code> and <code className={themeVars.code}>$t1 = {toHex(vars.seqVars.v1, 8)}</code>.</p>
               
+              {/* Question text wrapping normally */}
+              <p className="mb-6">Find the final value of <code className={themeVars.code}>$t2</code> if <code className={themeVars.code}>$t0 = {toHex(vars.seqVars.v0, 8)}</code> and <code className={themeVars.code}>$t1 = {toHex(vars.seqVars.v1, 8)}</code>.</p>
+
               <div className="grid md:grid-cols-3 gap-6 text-lg">
                 {[
                   { id: 's1', title: 'Sequence 1', inst: `sll $t2, $t0, ${vars.seqVars.sh1}\nor $t2, $t2, $t1` },
                   { id: 's2', title: 'Sequence 2', inst: `sll $t2, $t0, ${vars.seqVars.sh1}\nandi $t2, $t2, -2` },
                   { id: 's3', title: 'Sequence 3', inst: `srl $t2, $t0, ${vars.seqVars.sh3}\nandi $t2, $t2, 0xFFEF` }
                 ].map(({ id, title, inst }) => (
-                  <div key={id} className="flex flex-col">
-                    <div className={`p-5 border rounded-xl flex-grow ${themeVars.blueBox}`}>
+                  <div key={id} className="flex flex-col min-w-0">
+                    <div className={`p-4 md:p-5 border rounded-xl flex-grow ${themeVars.blueBox}`}>
                       <h3 className="font-bold border-b border-current pb-2 mb-4 opacity-80">{title}</h3>
-                      <div className="font-mono mb-6 whitespace-pre-line">{inst}</div>
+                      <div className="font-mono mb-6 whitespace-pre-line text-sm md:text-base">{inst}</div>
                       {renderInput(`seq_${id}`, '0x...', 'w-full')}
                     </div>
                     {revealed[`seq_${id}`] && (
-                      <div className={`mt-3 p-4 rounded-xl border overflow-x-auto shadow-sm ${themeVars.answerKeyBg}`}>
-                        <strong className="text-emerald-500 dark:text-emerald-400 block mb-2 text-sm">Step-by-Step Logic:</strong>
-                        <pre className="font-mono text-[11px] md:text-xs leading-relaxed">{vars.seqExpl[id]}</pre>
+                      <div className={`mt-4 p-4 md:p-5 rounded-xl border shadow-sm overflow-x-auto ${themeVars.answerKeyBg}`}>
+                        <h4 className={`font-bold mb-2 ${themeVars.stepHeader}`}>Step-by-Step Solution:</h4>
+                        {/* Step by step blocks have horizontal scroll so formulas/code don't break UI */}
+                        <pre className="font-mono text-xs md:text-sm leading-relaxed overflow-x-auto pb-2">{vars.seqExpl[id]}</pre>
                       </div>
                     )}
                   </div>
@@ -743,11 +753,11 @@ const Chapter2 = () => {
         {/* ==================== TAB 3: MACHINE CODE (DATAPATH UI) ==================== */}
         {activeTab === 'machinecode' && (
           <div className="space-y-8">
-            <div className={`p-6 md:p-10 rounded-2xl border shadow-lg ${themeVars.cardBg}`}>
+            <div className={`p-6 md:p-10 rounded-2xl border shadow-lg overflow-x-auto ${themeVars.cardBg}`}>
               <h2 className="text-2xl font-bold mb-4 text-blue-500">Part A: Assembly to Machine Code</h2>
               <p className="mb-4">Translate the following instruction into a 32-bit Machine Code string using the breakdown below.</p>
               
-              <div className={`inline-block px-6 py-4 rounded-lg font-mono text-xl md:text-2xl font-bold tracking-wider mb-2 ${themeVars.blueBox}`}>
+              <div className={`inline-block px-4 md:px-6 py-4 rounded-lg font-mono text-lg md:text-2xl font-bold tracking-wider mb-2 ${themeVars.blueBox}`}>
                 <ColoredInstruction q={vars.mcAns} revealedObj={revealed} prefix="mc" parentRevealKey="mc_hex" isDark={isDark} />
               </div>
 
@@ -755,7 +765,7 @@ const Chapter2 = () => {
               
               <div className="pt-2 flex flex-col md:flex-row items-start md:items-center gap-4">
                 <p className="font-semibold whitespace-nowrap">Final 32-bit Hex:</p>
-                {renderInput('mc_hex', '0x...', 'w-48')}
+                {renderInput('mc_hex', '0x...', 'w-full md:w-48')}
               </div>
             </div>
 
@@ -770,12 +780,11 @@ const Chapter2 = () => {
                       {idx + 1}
                     </div>
                     
-                    <div className={`pt-10 pb-8 px-6 md:px-8 border rounded-xl shadow-inner ${isDark ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
+                    <div className={`pt-10 pb-8 px-4 md:px-8 border rounded-xl shadow-inner ${isDark ? 'bg-slate-900/50 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
                       
-                      <div className={`inline-block px-4 md:px-6 py-4 rounded-lg font-mono text-xl md:text-2xl font-bold tracking-wider mb-4 ${themeVars.blueBox} shadow-sm border-l-4 border-blue-500`}>
+                      <div className={`inline-block px-4 md:px-6 py-4 rounded-lg font-mono text-lg md:text-2xl font-bold tracking-wider mb-4 ${themeVars.blueBox} shadow-sm border-l-4 border-blue-500`}>
                         <div className="text-center mb-2">{q.hex}</div>
-                        <div className="text-[10px] md:text-sm tracking-[0.1em] md:tracking-[0.15em]">
-                          {/* THIS MAKES THE BINARY CHUNKS GLOW */}
+                        <div className="text-[10px] md:text-sm tracking-[0.1em] md:tracking-[0.15em] whitespace-nowrap overflow-x-auto">
                           <ColoredBinary q={q} revealedObj={revealed} prefix={q.id} parentRevealKey={`${q.id}_inst`} isDark={isDark} />
                         </div>
                       </div>

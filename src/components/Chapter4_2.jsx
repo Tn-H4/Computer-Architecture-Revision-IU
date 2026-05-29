@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDiagramStore } from '../store/diagramStore';
 import { SunIcon, MoonIcon } from './Icons';
-import { DndContext, useDraggable, useDroppable, DragOverlay, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
+import { DndContext, useDraggable, useDroppable, DragOverlay, useSensor, useSensors, MouseSensor, TouchSensor } from '@dnd-kit/core';
 import Xarrow, { Xwrapper } from 'react-xarrows'; 
 
 const XarrowComponent = Xarrow.default || Xarrow;
@@ -24,10 +24,9 @@ const INITIAL_INSTRUCTIONS = [
 
 // --- HELPER COMPONENTS ---
 
-// 1. Draggable Toolbox Item
-const DraggableTool = ({ tool }) => {
+const DraggableTool = ({ tool, menuType }) => {
   const { attributes, listeners, setNodeRef } = useDraggable({
-    id: `toolbox-${tool.id}`,
+    id: `toolbox-${menuType}-${tool.id}`, 
     data: { type: tool.id, source: 'toolbox' }
   });
 
@@ -36,14 +35,13 @@ const DraggableTool = ({ tool }) => {
       ref={setNodeRef}
       {...listeners}
       {...attributes}
-      className={`w-10 h-10 flex items-center justify-center font-bold text-xs rounded-md border cursor-grab active:cursor-grabbing hover:scale-105 transition-transform ${tool.style}`}
+      style={{ touchAction: 'none' }}
+      className={`flex items-center justify-center text-xs font-bold rounded-md border cursor-grab active:cursor-grabbing shrink-0 select-none touch-none w-14 h-10 sm:w-16 sm:h-12 lg:w-10 lg:h-10 ${tool.style}`}
     >
       {tool.label}
     </div>
   );
 };
-
-// 2. Draggable Item already placed on the grid
 const DraggableGridItem = ({ type, rowId, colId, isSelected, onSelect, isForwardingMode, arrowStart }) => {
   const tool = TOOLS.find(t => t.id === type);
   
@@ -60,7 +58,7 @@ const DraggableGridItem = ({ type, rowId, colId, isSelected, onSelect, isForward
   }
 
   const isStartingPoint = arrowStart?.row === rowId && arrowStart?.col === colId;
-  const highlightStyle = isStartingPoint ? 'ring-4 ring-amber-500 animate-pulse' : (isSelected && !isForwardingMode ? 'ring-4 ring-blue-500 ring-offset-1 scale-105 shadow-lg' : '');
+  const highlightStyle = isStartingPoint ? 'ring-4 ring-amber-500 animate-pulse' : (isSelected && !isForwardingMode ? 'ring-4 ring-blue-500 ring-offset-1 shadow-lg' : '');
 
   return (
     <div
@@ -69,8 +67,9 @@ const DraggableGridItem = ({ type, rowId, colId, isSelected, onSelect, isForward
       {...(isForwardingMode ? {} : listeners)} 
       {...(isForwardingMode ? {} : attributes)}
       onClick={(e) => onSelect(e, rowId, colId, true)}
-      className={`w-[90%] h-[85%] relative flex items-center justify-center font-bold text-sm rounded-md border transition-all duration-150 
-        ${isForwardingMode ? 'cursor-crosshair hover:ring-2 hover:ring-amber-400' : 'cursor-grab active:cursor-grabbing hover:scale-105'} 
+      style={{ touchAction: 'none' }}
+      className={`w-[90%] h-[85%] relative flex items-center justify-center font-bold text-sm rounded-md border select-none touch-none
+        ${isForwardingMode ? 'cursor-crosshair hover:ring-2 hover:ring-amber-400' : 'cursor-grab active:cursor-grabbing'} 
         ${tool.style} ${highlightStyle}`}
     >
       {tool.label}
@@ -78,7 +77,6 @@ const DraggableGridItem = ({ type, rowId, colId, isSelected, onSelect, isForward
   );
 };
 
-// 3. The Grid Cell (Droppable target)
 const GridCell = ({ rowId, colId, value, theme, isSelected, onSelect, isForwardingMode, exerciseMode, arrowStart }) => {
   const { isOver, setNodeRef } = useDroppable({ id: `${rowId}-${colId}` });
   
@@ -122,7 +120,6 @@ const GridCell = ({ rowId, colId, value, theme, isSelected, onSelect, isForwardi
   );
 };
 
-// 4. Trash Bin
 const TrashBin = ({ theme }) => {
   const { isOver, setNodeRef } = useDroppable({ id: 'trash' });
   
@@ -130,7 +127,7 @@ const TrashBin = ({ theme }) => {
     <div
       ref={setNodeRef}
       title="Drag items here to delete"
-      className={`w-10 h-10 flex items-center justify-center rounded-md shadow-md transition-colors border ${
+      className={`w-10 h-10 flex items-center justify-center rounded-md shadow-md transition-colors border shrink-0 ${
         isOver 
           ? 'bg-red-500 border-red-600 text-white scale-110' 
           : theme === 'dark' 
@@ -158,7 +155,7 @@ const ScrollbarStyles = ({ theme }) => (
 
 // --- MAIN COMPONENT ---
 
-const Chapter4_2 = ({ externalInstructions, setExternalInstructions, externalGrid, setExternalGrid, exerciseMode, setExerciseMode }) => {
+export default function Chapter4_2({ externalInstructions, setExternalInstructions, externalGrid, setExternalGrid, exerciseMode, setExerciseMode, onToggleSidebar }) {
   const { theme, toggleTheme, toggleMenu } = useDiagramStore();
   
   const instructions = externalInstructions?.length > 0 ? externalInstructions : INITIAL_INSTRUCTIONS;
@@ -175,21 +172,20 @@ const Chapter4_2 = ({ externalInstructions, setExternalInstructions, externalGri
   const [forwardingPaths, setForwardingPaths] = useState([]); 
   const [arrowStart, setArrowStart] = useState(null); 
   
-  // NEW STATE: Controls the visibility of the Help/Controls Popup
   const [showHelp, setShowHelp] = useState(false);
+  const [isInstColumnCollapsed, setIsInstColumnCollapsed] = useState(false);
+  const [collapsedRows, setCollapsedRows] = useState(new Set());
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5, 
-      },
+    useSensor(MouseSensor, { 
+      activationConstraint: { distance: 5 } // Mouse starts dragging after 5 pixels
+    }),
+    useSensor(TouchSensor, { 
+      activationConstraint: { 
+        tolerance: 8
+      } 
     })
   );
-
-  const activeTools = TOOLS.filter(tool => {
-    if (exerciseMode === 'forwarding' && tool.id === 'Stall') return false; 
-    return true;
-  });
 
   const handleModeSwitch = (mode) => {
     if (setExerciseMode) setExerciseMode(mode);
@@ -218,6 +214,15 @@ const Chapter4_2 = ({ externalInstructions, setExternalInstructions, externalGri
 
   const handleAddColumn = () => {
     setGrid(prev => prev.map(row => [...row, null]));
+  };
+
+  const toggleCollapse = (rowIndex) => {
+    setCollapsedRows(prev => {
+      const next = new Set(prev);
+      if (next.has(rowIndex)) next.delete(rowIndex);
+      else next.add(rowIndex);
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -435,10 +440,18 @@ const Chapter4_2 = ({ externalInstructions, setExternalInstructions, externalGri
     }
   };
 
+  const handleClearAll = () => {
+    setGrid(Array(10).fill(null).map(() => Array(20).fill(null)));
+  };
+
   const activeTool = activeDragData ? TOOLS.find(t => t.id === activeDragData.type) : null;
   const isDraggingGroup = activeDragData?.source === 'grid' && selectedCells.some(c => c.row === activeDragData.row && c.col === activeDragData.col) && selectedCells.length > 1;
   const borderTheme = theme === 'dark' ? 'border-slate-700' : 'border-slate-300';
   const headerBg = theme === 'dark' ? 'bg-slate-800' : 'bg-slate-100';
+
+  const overlayClass = activeDragData?.source === 'toolbox'
+    ? 'w-14 h-10 sm:w-16 sm:h-12' 
+    : 'w-[72px] h-[48px]'; 
 
   return (
     <div className={`w-full h-screen relative flex flex-col min-h-0 ${theme === 'dark' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-900'}`}>
@@ -446,8 +459,9 @@ const Chapter4_2 = ({ externalInstructions, setExternalInstructions, externalGri
       
       <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd} autoScroll={false}>
         
-        {/* TOP CONTROL BAR */}
-        <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-40 pointer-events-none">
+        {/* ================= DESKTOP (OLD DESIGN) FLOATING HEADER ================= */}
+        <div className="hidden lg:flex absolute top-4 left-4 right-4 items-center justify-between z-40 pointer-events-none">
+          
           <div className="flex gap-3 pointer-events-auto">
             <button onClick={toggleMenu} className={`w-10 h-10 flex items-center justify-center rounded-md shadow-md transition-colors border ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 border-slate-700' : 'bg-white hover:bg-slate-100 border-slate-200'}`}>
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
@@ -460,9 +474,7 @@ const Chapter4_2 = ({ externalInstructions, setExternalInstructions, externalGri
               <button
                 onClick={() => handleModeSwitch('stall')}
                 className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors ${
-                  exerciseMode === 'stall' 
-                    ? 'bg-blue-600 text-white shadow' 
-                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  exerciseMode === 'stall' ? 'bg-blue-600 text-white shadow' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
               >
                 Stalls
@@ -470,9 +482,7 @@ const Chapter4_2 = ({ externalInstructions, setExternalInstructions, externalGri
               <button
                 onClick={() => handleModeSwitch('forwarding')}
                 className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors ${
-                  exerciseMode === 'forwarding' 
-                    ? 'bg-emerald-600 text-white shadow' 
-                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  exerciseMode === 'forwarding' ? 'bg-emerald-600 text-white shadow' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                 }`}
               >
                 Forwarding
@@ -481,15 +491,9 @@ const Chapter4_2 = ({ externalInstructions, setExternalInstructions, externalGri
 
             {exerciseMode === 'forwarding' && (
               <button 
-                onClick={() => {
-                  setIsForwardingMode(!isForwardingMode);
-                  setArrowStart(null);
-                  setSelectedCells([]);
-                }} 
+                onClick={() => { setIsForwardingMode(!isForwardingMode); setArrowStart(null); setSelectedCells([]); }} 
                 className={`px-4 h-10 flex items-center justify-center font-bold text-sm rounded-md shadow-md transition-colors border ${
-                  isForwardingMode 
-                    ? 'bg-amber-500 border-amber-600 text-white animate-pulse' 
-                    : (theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 border-slate-700' : 'bg-white hover:bg-slate-100 border-slate-200')
+                  isForwardingMode ? 'bg-amber-500 border-amber-600 text-white animate-pulse' : (theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 border-slate-700' : 'bg-white hover:bg-slate-100 border-slate-200')
                 }`}
               >
                 {isForwardingMode ? 'Drawing Arrows...' : 'Draw Arrows'}
@@ -500,15 +504,10 @@ const Chapter4_2 = ({ externalInstructions, setExternalInstructions, externalGri
                <button 
                  onClick={() => setForwardingPaths([])}
                  className={`px-4 h-10 flex items-center justify-center gap-2 font-bold text-sm rounded-md shadow-md transition-all duration-150 border pointer-events-auto hover:scale-105 active:scale-95 ${
-                   theme === 'dark'
-                     ? 'bg-rose-950/30 border-rose-900/50 text-rose-400 hover:bg-rose-900/30'
-                     : 'bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100 shadow-sm'
+                   theme === 'dark' ? 'bg-rose-950/30 border-rose-900/50 text-rose-400 hover:bg-rose-900/30' : 'bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100'
                  }`}
                >
-                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                 </svg>
-                 Clear Arrows
+                 Clear
                </button>
             )}
           </div>
@@ -517,42 +516,117 @@ const Chapter4_2 = ({ externalInstructions, setExternalInstructions, externalGri
             <span className={`flex items-center text-sm font-semibold px-2 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
               Toolbox:
             </span>
-            {activeTools.map(tool => (
-              <DraggableTool key={tool.id} tool={tool} />
+            {TOOLS.map(tool => (
+              <DraggableTool key={`desktop-${tool.id}`} tool={tool} menuType="desktop" />
             ))}
           </div>
           
-          {/* --- NEW: HELP BUTTON & TRASH BIN CONTAINER --- */}
           <div className="flex items-center gap-3 pointer-events-auto">
-            {/* Help / Controls Info Button */}
+            
             <button
               onClick={() => setShowHelp(true)}
               title="Controls Help"
               className={`w-10 h-10 flex items-center justify-center rounded-md shadow-md transition-colors border hover:scale-105 ${
-                theme === 'dark'
-                  ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-400 hover:text-blue-400'
-                  : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-500 hover:text-blue-500'
+                theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-400 hover:text-blue-400' : 'bg-white hover:bg-slate-100 border-slate-200 text-slate-500 hover:text-blue-500'
               }`}
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </button>
-
-            {/* Trash Bin */}
             <TrashBin theme={theme} />
           </div>
         </div>
 
-        {/* MAXIMUM EXPANSION GRID AREA */}
+        {/* ================= MOBILE (2 SOLID LAYERS) HEADER ================= */}
+        <div className="lg:hidden flex flex-col shrink-0 z-30">
+          
+          <div className={`p-3 border-b flex flex-row items-center justify-between ${theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+            <div className="flex items-center gap-3">
+              <button onClick={toggleMenu} className={`p-2 rounded-md transition-colors ${theme === 'dark' ? 'hover:bg-slate-800' : 'hover:bg-slate-100'}`}>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+              </button>
+              <h2 className={`font-bold hidden sm:block ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Pipeline</h2>
+            </div>
+            
+            <div className={`p-1 rounded-lg flex gap-1 ${theme === 'dark' ? 'bg-slate-950' : 'bg-slate-100'}`}>
+              <button 
+                onClick={() => handleModeSwitch('stall')}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                  exerciseMode === 'stall' ? 'bg-blue-600 text-white shadow-sm' : `hover:text-blue-500 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`
+                }`}
+              >
+                Stalls
+              </button>
+              <button 
+                onClick={() => handleModeSwitch('forwarding')}
+                className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
+                  exerciseMode === 'forwarding' ? 'bg-emerald-600 text-white shadow-sm' : `hover:text-emerald-500 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`
+                }`}
+              >
+                Forwarding
+              </button>
+            </div>
+
+            <button onClick={toggleTheme} className={`w-10 h-10 flex items-center justify-center rounded-md shadow-sm transition-colors border ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-amber-400' : 'bg-white hover:bg-slate-50 border-slate-200 text-slate-700'}`}>
+               {theme === 'dark' ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
+            </button>
+
+            <button 
+                onClick={onToggleSidebar}
+                className={`flex items-center justify-center w-10 h-10 rounded-md transition-colors border shadow-sm shrink-0 ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600'}`}
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </button>
+          </div>
+
+          <div className={`p-3 border-b flex flex-row items-center justify-between gap-3 overflow-x-auto ${theme === 'dark' ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-semibold mr-2 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
+                Toolbox:
+              </span>
+              {TOOLS.map((tool) => (
+                <DraggableTool key={`mobile-${tool.id}`} tool={tool} menuType="mobile" />
+              ))}
+            </div>
+
+            <div className={`flex items-center gap-2 pl-3 border-l shrink-0 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-300'}`}>
+              {exerciseMode === 'forwarding' && (
+                <>
+                  <button 
+                    onClick={() => { setIsForwardingMode(!isForwardingMode); setArrowStart(null); setSelectedCells([]); }} 
+                    className={`px-3 h-10 flex items-center justify-center font-bold text-xs rounded-md shadow-sm transition-colors border ${
+                      isForwardingMode ? 'bg-amber-500 border-amber-600 text-white animate-pulse' : (theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 border-slate-700' : 'bg-white hover:bg-slate-100 border-slate-200')
+                    }`}
+                  >
+                    {isForwardingMode ? 'Drawing...' : 'Draw'}
+                  </button>
+                  {forwardingPaths.length > 0 && (
+                     <button 
+                       onClick={() => setForwardingPaths([])}
+                       className={`px-3 h-10 flex items-center justify-center font-bold text-xs rounded-md shadow-sm transition-colors border ${
+                         theme === 'dark' ? 'bg-rose-950/30 border-rose-900/50 text-rose-400' : 'bg-rose-50 border-rose-200 text-rose-600'
+                       }`}
+                     >
+                       Clear
+                     </button>
+                  )}
+                </>
+              )}
+              
+              <TrashBin theme={theme} />
+              
+            </div>
+          </div>
+        </div>
+
+        {/* ================= GRID AREA ================= */}
         <div 
-          className="flex-1 min-h-0 min-w-0 flex flex-col pt-20 px-6 pb-6"
+          className="flex-1 min-h-0 min-w-0 flex flex-col p-4 sm:p-6 lg:pt-24"
           onClick={() => { setSelectedCells([]); setArrowStart(null); }} 
         >
           <div className={`pipeline-grid flex-1 min-h-0 min-w-0 overflow-scroll rounded-lg shadow-inner border ${borderTheme} ${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}>
-            
             <Xwrapper>
               
+              {/* Arrow Logic */}
               {forwardingPaths.map((path, index) => {
                 const sourceValue = grid[path.from.row] && grid[path.from.row][path.from.col];
                 const hasSourcePipeReg = sourceValue && ['IM', 'Reg1', 'ALU', 'DM'].includes(sourceValue);
@@ -583,9 +657,20 @@ const Chapter4_2 = ({ externalInstructions, setExternalInstructions, externalGri
                 
                 {/* STICKY HEADER ROW */}
                 <div className="flex sticky top-0 z-20 w-fit">
-                  <div className={`w-56 shrink-0 sticky left-0 z-30 border-r border-b ${borderTheme} ${headerBg} flex items-center justify-center font-bold py-3 text-sm tracking-wider uppercase shadow-[2px_2px_5px_rgba(0,0,0,0.1)]`}>
-                    Instruction
+                  
+                  <div className={`shrink-0 sticky left-0 z-30 border-r border-b ${borderTheme} ${headerBg} flex items-center shadow-[2px_2px_5px_rgba(0,0,0,0.1)] transition-all overflow-hidden ${isInstColumnCollapsed ? 'w-12 justify-center px-1' : 'w-48 sm:w-56 px-4'}`}>
+                    {!isInstColumnCollapsed && <span className="font-bold py-3 text-sm tracking-wider uppercase mr-auto">Instruction</span>}
+                    <button 
+                      onClick={() => setIsInstColumnCollapsed(!isInstColumnCollapsed)}
+                      className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-700' : 'text-slate-500 hover:bg-slate-200'}`}
+                      title={isInstColumnCollapsed ? "Expand Column" : "Collapse Column"}
+                    >
+                      <svg className={`w-4 h-4 transition-transform ${isInstColumnCollapsed ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
                   </div>
+
                   {grid[0].map((_, i) => (
                     <div key={i} className={`w-20 shrink-0 flex justify-center items-center font-bold border-r border-b py-3 ${borderTheme} ${headerBg}`}>
                       CC{i + 1}
@@ -601,20 +686,28 @@ const Chapter4_2 = ({ externalInstructions, setExternalInstructions, externalGri
                 </div>
 
                 {/* GRID ROWS */}
-                <div className="flex flex-col w-fit">
+                <div className="flex flex-col w-fit pb-10">
                   {grid.map((row, rowIndex) => (
                     <div key={rowIndex} className="flex">
-                      <div className={`w-56 shrink-0 sticky left-0 z-10 font-mono text-sm px-2 flex items-center border-r border-b shadow-[2px_0_5px_rgba(0,0,0,0.05)] ${borderTheme} ${theme === 'dark' ? 'bg-slate-800' : 'bg-slate-50'}`}>
+                      
+                      <div className={`shrink-0 sticky left-0 z-20 font-mono px-2 flex items-center border-r border-b shadow-[2px_0_5px_rgba(0,0,0,0.05)] transition-all overflow-hidden ${borderTheme} ${theme === 'dark' ? 'bg-slate-800' : 'bg-slate-50'} ${isInstColumnCollapsed ? 'w-12 justify-center px-1' : 'w-48 sm:w-56'}`}>
                         
-                        <input
-                          type="text"
-                          value={instructions[rowIndex] || ''}
-                          onChange={(e) => handleInstructionChange(rowIndex, e.target.value)}
-                          className={`w-full bg-transparent outline-none border-none focus:ring-2 focus:ring-blue-500 rounded px-2 py-1 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
-                          placeholder={`Instruction ${rowIndex + 1}`}
-                        />
+                        <span className={`text-xs font-bold select-none ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'} ${!isInstColumnCollapsed && 'mr-2'}`}>
+                          I{rowIndex + 1}
+                        </span>
+
+                        {!isInstColumnCollapsed && (
+                          <input
+                            type="text"
+                            value={instructions[rowIndex] || ''}
+                            onChange={(e) => handleInstructionChange(rowIndex, e.target.value)}
+                            className={`w-full bg-transparent outline-none border-none text-sm focus:ring-2 focus:ring-blue-500 rounded px-1 py-1 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
+                            placeholder={`Instruction ${rowIndex + 1}`}
+                          />
+                        )}
 
                       </div>
+
                       <div className="flex">
                         {row.map((cellValue, colIndex) => {
                           const isSelected = selectedCells.some(c => c.row === rowIndex && c.col === colIndex);
@@ -637,13 +730,12 @@ const Chapter4_2 = ({ externalInstructions, setExternalInstructions, externalGri
                     </div>
                   ))}
 
-                  {/* ADD ROW BUTTON */}
                   <div className="flex">
                     <button
                       onClick={handleAddRow}
-                      className={`w-56 h-14 shrink-0 sticky left-0 z-10 font-bold text-sm flex items-center justify-center border-r border-b shadow-[2px_0_5px_rgba(0,0,0,0.05)] transition-colors cursor-pointer ${borderTheme} ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}
+                      className={`h-14 shrink-0 sticky left-0 z-20 font-bold text-sm flex items-center justify-center border-r border-b shadow-[2px_0_5px_rgba(0,0,0,0.05)] transition-all cursor-pointer ${borderTheme} ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'} ${isInstColumnCollapsed ? 'w-12' : 'w-48 sm:w-56'}`}
                     >
-                      + Add Instruction
+                      {isInstColumnCollapsed ? '+' : '+ Add Instruction'}
                     </button>
                   </div>
                   
@@ -653,10 +745,15 @@ const Chapter4_2 = ({ externalInstructions, setExternalInstructions, externalGri
           </div>
         </div>
 
-        {/* DRAG OVERLAY */}
         <DragOverlay dropAnimation={null}>
           {activeTool ? (
-            <div className={`relative w-16 h-12 flex items-center justify-center font-bold text-sm rounded-md border shadow-2xl scale-110 opacity-90 ${activeTool.style}`}>
+            <div 
+              className={`relative flex items-center justify-center font-bold text-xs rounded-md border shadow-2xl opacity-90 ${activeTool.style} ${
+                activeDragData?.source === 'toolbox' 
+                  ? 'w-14 h-10 sm:w-16 sm:h-12 lg:w-10 lg:h-10' 
+                  : 'w-[72px] h-[48px]'
+              }`}
+            >
               {activeTool.label}
               
               {isDraggingGroup && (
@@ -670,10 +767,10 @@ const Chapter4_2 = ({ externalInstructions, setExternalInstructions, externalGri
 
       </DndContext>
 
-      {/* --- NEW: INSTRUCTIONS / HELP MODAL --- */}
+      {/* --- INSTRUCTIONS / HELP MODAL --- */}
       {showHelp && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm pointer-events-auto" 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm pointer-events-auto px-4" 
           onClick={() => setShowHelp(false)}
         >
           <div 
@@ -727,6 +824,4 @@ const Chapter4_2 = ({ externalInstructions, setExternalInstructions, externalGri
 
     </div>
   );
-};
-
-export default Chapter4_2;
+}

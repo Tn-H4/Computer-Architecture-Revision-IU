@@ -42,6 +42,7 @@ const DraggableTool = ({ tool, menuType }) => {
     </div>
   );
 };
+
 const DraggableGridItem = ({ type, rowId, colId, isSelected, onSelect, isForwardingMode, arrowStart }) => {
   const tool = TOOLS.find(t => t.id === type);
   
@@ -104,7 +105,7 @@ const GridCell = ({ rowId, colId, value, theme, isSelected, onSelect, isForwardi
           isSelected={isSelected} 
           onSelect={onSelect} 
           isForwardingMode={isForwardingMode} 
-          arrowStart={arrowStart}             
+          arrowStart={arrowStart}            
         />
       )}
 
@@ -120,8 +121,9 @@ const GridCell = ({ rowId, colId, value, theme, isSelected, onSelect, isForwardi
   );
 };
 
-const TrashBin = ({ theme }) => {
-  const { isOver, setNodeRef } = useDroppable({ id: 'trash' });
+// FIX 1: Pass dynamic ID so Desktop and Mobile don't conflict
+const TrashBin = ({ id = 'trash', theme }) => {
+  const { isOver, setNodeRef } = useDroppable({ id });
   
   return (
     <div
@@ -333,7 +335,8 @@ export default function Chapter4_2({ externalInstructions, setExternalInstructio
 
     const sourceData = active.data.current;
     
-    if (over.id === 'trash') {
+    // FIX 1: Allow string check for any TrashBin ID (trash-desktop, trash-mobile)
+    if (typeof over.id === 'string' && over.id.startsWith('trash')) {
       if (sourceData.source === 'grid') {
         const isDraggedItemSelected = selectedCells.some(c => c.row === sourceData.row && c.col === sourceData.col);
         
@@ -362,7 +365,8 @@ export default function Chapter4_2({ externalInstructions, setExternalInstructio
       const [targetRow, targetCol] = over.id.split('-').map(Number);
       
       if (sourceData.source === 'toolbox') {
-        if (grid[targetRow][targetCol] !== null) return; 
+        // FIX 3a: Removed the block preventing overwrite
+        // if (grid[targetRow][targetCol] !== null) return; 
 
         setGrid((prevGrid) => {
           const newGrid = prevGrid.map(row => [...row]);
@@ -390,18 +394,13 @@ export default function Chapter4_2({ externalInstructions, setExternalInstructio
         const numRows = grid.length;
         const numCols = grid[0].length;
 
+        // FIX 3b: Removed the block preventing target occupant overwrite
         const canMove = itemsToMove.every(item => {
           const newR = item.row + rowOffset;
           const newC = item.col + colOffset;
           
           if (newR < 0 || newR >= numRows || newC < 0 || newC >= numCols) return false;
-
-          const targetOccupant = grid[newR][newC];
-          if (targetOccupant !== null) {
-            const isOccupantMoving = itemsToMove.some(m => m.row === newR && m.col === newC);
-            if (!isOccupantMoving) return false; 
-          }
-          return true;
+          return true; // Overlay and overwrite permitted
         });
 
         if (!canMove) return; 
@@ -440,18 +439,10 @@ export default function Chapter4_2({ externalInstructions, setExternalInstructio
     }
   };
 
-  const handleClearAll = () => {
-    setGrid(Array(10).fill(null).map(() => Array(20).fill(null)));
-  };
-
   const activeTool = activeDragData ? TOOLS.find(t => t.id === activeDragData.type) : null;
   const isDraggingGroup = activeDragData?.source === 'grid' && selectedCells.some(c => c.row === activeDragData.row && c.col === activeDragData.col) && selectedCells.length > 1;
   const borderTheme = theme === 'dark' ? 'border-slate-700' : 'border-slate-300';
   const headerBg = theme === 'dark' ? 'bg-slate-800' : 'bg-slate-100';
-
-  const overlayClass = activeDragData?.source === 'toolbox'
-    ? 'w-14 h-10 sm:w-16 sm:h-12' 
-    : 'w-[72px] h-[48px]'; 
 
   return (
     <div className={`w-full h-screen relative flex flex-col min-h-0 ${theme === 'dark' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-900'}`}>
@@ -532,7 +523,8 @@ export default function Chapter4_2({ externalInstructions, setExternalInstructio
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             </button>
-            <TrashBin theme={theme} />
+            {/* Unique Desktop TrashBin ID */}
+            <TrashBin id="trash-desktop" theme={theme} />
           </div>
         </div>
 
@@ -612,7 +604,8 @@ export default function Chapter4_2({ externalInstructions, setExternalInstructio
                 </>
               )}
               
-              <TrashBin theme={theme} />
+              {/* Unique Mobile TrashBin ID */}
+              <TrashBin id="trash-mobile" theme={theme} />
               
             </div>
           </div>
@@ -623,20 +616,23 @@ export default function Chapter4_2({ externalInstructions, setExternalInstructio
           className="flex-1 min-h-0 min-w-0 flex flex-col p-4 sm:p-6 lg:pt-24"
           onClick={() => { setSelectedCells([]); setArrowStart(null); }} 
         >
-          <div className={`pipeline-grid flex-1 min-h-0 min-w-0 overflow-scroll rounded-lg shadow-inner border ${borderTheme} ${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}>
-            <Xwrapper>
-              
-              {/* Arrow Logic */}
-              {forwardingPaths.map((path, index) => {
-                const sourceValue = grid[path.from.row] && grid[path.from.row][path.from.col];
-                const hasSourcePipeReg = sourceValue && ['IM', 'Reg1', 'ALU', 'DM'].includes(sourceValue);
-                const startPoint = hasSourcePipeReg ? `pipe-reg-${path.from.row}-${path.from.col}` : `block-${path.from.row}-${path.from.col}`;
+          <div className={`pipeline-grid flex-1 min-h-0 min-w-0 overflow-auto rounded-lg shadow-inner border ${borderTheme} ${theme === 'dark' ? 'bg-slate-900' : 'bg-white'}`}>
+            
+            {/* FIX 2: Wrapper constraint forces the absolute Xarrow lines to anchor to the scrollable grid, NOT the window */}
+            <div className="relative min-w-max w-fit">
+              <Xwrapper>
+                
+                {/* Arrow Logic */}
+                {forwardingPaths.map((path, index) => {
+                  const sourceValue = grid[path.from.row] && grid[path.from.row][path.from.col];
+                  const hasSourcePipeReg = sourceValue && ['IM', 'Reg1', 'ALU', 'DM'].includes(sourceValue);
+                  const startPoint = hasSourcePipeReg ? `pipe-reg-${path.from.row}-${path.from.col}` : `block-${path.from.row}-${path.from.col}`;
 
-                const targetValue = grid[path.to.row] && grid[path.to.row][path.to.col];
-                const hasTargetPipeReg = targetValue && ['IM', 'Reg1', 'ALU', 'DM'].includes(targetValue);
-                const endPoint = hasTargetPipeReg ? `pipe-reg-${path.to.row}-${path.to.col}` : `block-${path.to.row}-${path.to.col}`;
+                  const targetValue = grid[path.to.row] && grid[path.to.row][path.to.col];
+                  const hasTargetPipeReg = targetValue && ['IM', 'Reg1', 'ALU', 'DM'].includes(targetValue);
+                  const endPoint = hasTargetPipeReg ? `pipe-reg-${path.to.row}-${path.to.col}` : `block-${path.to.row}-${path.to.col}`;
 
-                return (
+                  return (
                   <XarrowComponent
                     key={index}
                     start={startPoint}
@@ -652,96 +648,97 @@ export default function Chapter4_2({ externalInstructions, setExternalInstructio
                   />
                 );
               })}
-              
-              <div className="flex flex-col w-fit">
                 
-                {/* STICKY HEADER ROW */}
-                <div className="flex sticky top-0 z-20 w-fit">
+                <div className="flex flex-col w-fit">
                   
-                  <div className={`shrink-0 sticky left-0 z-30 border-r border-b ${borderTheme} ${headerBg} flex items-center shadow-[2px_2px_5px_rgba(0,0,0,0.1)] transition-all overflow-hidden ${isInstColumnCollapsed ? 'w-12 justify-center px-1' : 'w-48 sm:w-56 px-4'}`}>
-                    {!isInstColumnCollapsed && <span className="font-bold py-3 text-sm tracking-wider uppercase mr-auto">Instruction</span>}
-                    <button 
-                      onClick={() => setIsInstColumnCollapsed(!isInstColumnCollapsed)}
-                      className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-700' : 'text-slate-500 hover:bg-slate-200'}`}
-                      title={isInstColumnCollapsed ? "Expand Column" : "Collapse Column"}
-                    >
-                      <svg className={`w-4 h-4 transition-transform ${isInstColumnCollapsed ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                      </svg>
-                    </button>
-                  </div>
-
-                  {grid[0].map((_, i) => (
-                    <div key={i} className={`w-20 shrink-0 flex justify-center items-center font-bold border-r border-b py-3 ${borderTheme} ${headerBg}`}>
-                      CC{i + 1}
+                  {/* STICKY HEADER ROW */}
+                  <div className="flex sticky top-0 z-20 w-fit">
+                    
+                    <div className={`shrink-0 sticky left-0 z-30 border-r border-b ${borderTheme} ${headerBg} flex items-center shadow-[2px_2px_5px_rgba(0,0,0,0.1)] transition-all overflow-hidden ${isInstColumnCollapsed ? 'w-12 justify-center px-1' : 'w-48 sm:w-56 px-4'}`}>
+                      {!isInstColumnCollapsed && <span className="font-bold py-3 text-sm tracking-wider uppercase mr-auto">Instruction</span>}
+                      <button 
+                        onClick={() => setIsInstColumnCollapsed(!isInstColumnCollapsed)}
+                        className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${theme === 'dark' ? 'text-slate-400 hover:bg-slate-700' : 'text-slate-500 hover:bg-slate-200'}`}
+                        title={isInstColumnCollapsed ? "Expand Column" : "Collapse Column"}
+                      >
+                        <svg className={`w-4 h-4 transition-transform ${isInstColumnCollapsed ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                      </button>
                     </div>
-                  ))}
 
-                  <button
-                    onClick={handleAddColumn}
-                    className={`w-20 shrink-0 flex justify-center items-center font-bold border-r border-b py-3 cursor-pointer transition-colors ${borderTheme} ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}
-                  >
-                    + CC
-                  </button>
-                </div>
-
-                {/* GRID ROWS */}
-                <div className="flex flex-col w-fit pb-10">
-                  {grid.map((row, rowIndex) => (
-                    <div key={rowIndex} className="flex">
-                      
-                      <div className={`shrink-0 sticky left-0 z-20 font-mono px-2 flex items-center border-r border-b shadow-[2px_0_5px_rgba(0,0,0,0.05)] transition-all overflow-hidden ${borderTheme} ${theme === 'dark' ? 'bg-slate-800' : 'bg-slate-50'} ${isInstColumnCollapsed ? 'w-12 justify-center px-1' : 'w-48 sm:w-56'}`}>
-                        
-                        <span className={`text-xs font-bold select-none ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'} ${!isInstColumnCollapsed && 'mr-2'}`}>
-                          I{rowIndex + 1}
-                        </span>
-
-                        {!isInstColumnCollapsed && (
-                          <input
-                            type="text"
-                            value={instructions[rowIndex] || ''}
-                            onChange={(e) => handleInstructionChange(rowIndex, e.target.value)}
-                            className={`w-full bg-transparent outline-none border-none text-sm focus:ring-2 focus:ring-blue-500 rounded px-1 py-1 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
-                            placeholder={`Instruction ${rowIndex + 1}`}
-                          />
-                        )}
-
+                    {grid[0].map((_, i) => (
+                      <div key={i} className={`w-20 shrink-0 flex justify-center items-center font-bold border-r border-b py-3 ${borderTheme} ${headerBg}`}>
+                        CC{i + 1}
                       </div>
+                    ))}
 
-                      <div className="flex">
-                        {row.map((cellValue, colIndex) => {
-                          const isSelected = selectedCells.some(c => c.row === rowIndex && c.col === colIndex);
-                          return (
-                            <GridCell 
-                              key={colIndex} 
-                              rowId={rowIndex} 
-                              colId={colIndex} 
-                              value={cellValue} 
-                              theme={theme} 
-                              isSelected={isSelected}
-                              onSelect={handleSelect}
-                              isForwardingMode={isForwardingMode}
-                              exerciseMode={exerciseMode}
-                              arrowStart={arrowStart}            
-                            />
-                          );
-                        })}
-                      </div>
-                    </div>
-                  ))}
-
-                  <div className="flex">
                     <button
-                      onClick={handleAddRow}
-                      className={`h-14 shrink-0 sticky left-0 z-20 font-bold text-sm flex items-center justify-center border-r border-b shadow-[2px_0_5px_rgba(0,0,0,0.05)] transition-all cursor-pointer ${borderTheme} ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'} ${isInstColumnCollapsed ? 'w-12' : 'w-48 sm:w-56'}`}
+                      onClick={handleAddColumn}
+                      className={`w-20 shrink-0 flex justify-center items-center font-bold border-r border-b py-3 cursor-pointer transition-colors ${borderTheme} ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'}`}
                     >
-                      {isInstColumnCollapsed ? '+' : '+ Add Instruction'}
+                      + CC
                     </button>
                   </div>
-                  
+
+                  {/* GRID ROWS */}
+                  <div className="flex flex-col w-fit pb-10">
+                    {grid.map((row, rowIndex) => (
+                      <div key={rowIndex} className="flex">
+                        
+                        <div className={`shrink-0 sticky left-0 z-20 font-mono px-2 flex items-center border-r border-b shadow-[2px_0_5px_rgba(0,0,0,0.05)] transition-all overflow-hidden ${borderTheme} ${theme === 'dark' ? 'bg-slate-800' : 'bg-slate-50'} ${isInstColumnCollapsed ? 'w-12 justify-center px-1' : 'w-48 sm:w-56'}`}>
+                          
+                          <span className={`text-xs font-bold select-none ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'} ${!isInstColumnCollapsed && 'mr-2'}`}>
+                            I{rowIndex + 1}
+                          </span>
+
+                          {!isInstColumnCollapsed && (
+                            <input
+                              type="text"
+                              value={instructions[rowIndex] || ''}
+                              onChange={(e) => handleInstructionChange(rowIndex, e.target.value)}
+                              className={`w-full bg-transparent outline-none border-none text-sm focus:ring-2 focus:ring-blue-500 rounded px-1 py-1 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}
+                              placeholder={`Instruction ${rowIndex + 1}`}
+                            />
+                          )}
+
+                        </div>
+
+                        <div className="flex">
+                          {row.map((cellValue, colIndex) => {
+                            const isSelected = selectedCells.some(c => c.row === rowIndex && c.col === colIndex);
+                            return (
+                              <GridCell 
+                                key={colIndex} 
+                                rowId={rowIndex} 
+                                colId={colIndex} 
+                                value={cellValue} 
+                                theme={theme} 
+                                isSelected={isSelected}
+                                onSelect={handleSelect}
+                                isForwardingMode={isForwardingMode}
+                                exerciseMode={exerciseMode}
+                                arrowStart={arrowStart}            
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+
+                    <div className="flex">
+                      <button
+                        onClick={handleAddRow}
+                        className={`h-14 shrink-0 sticky left-0 z-20 font-bold text-sm flex items-center justify-center border-r border-b shadow-[2px_0_5px_rgba(0,0,0,0.05)] transition-all cursor-pointer ${borderTheme} ${theme === 'dark' ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'} ${isInstColumnCollapsed ? 'w-12' : 'w-48 sm:w-56'}`}
+                      >
+                        {isInstColumnCollapsed ? '+' : '+ Add Instruction'}
+                      </button>
+                    </div>
+                    
+                  </div>
                 </div>
-              </div>
-            </Xwrapper>
+              </Xwrapper>
+            </div>
           </div>
         </div>
 

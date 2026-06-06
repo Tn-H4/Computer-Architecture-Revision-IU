@@ -6,6 +6,11 @@ export default function BugReportModal() {
 
   if (!isBugModalOpen) return null;
 
+  const { register, handleSubmit, reset, formState: { errors, isSubmitting }, } = useForm({
+    resolver: zodResolver(userSchema),
+    defaultValues,
+  });
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Dark semi-transparent overlay */}
@@ -15,7 +20,6 @@ export default function BugReportModal() {
       />
 
       {/* The Popup Card */}
-      {/* 👉 FIX: Added 'max-h-[90vh] overflow-y-auto' so it scrolls on tiny screens */}
       <div className={`relative w-full max-w-md p-6 rounded-xl shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto ${
         theme === 'dark' ? 'bg-slate-900 border border-slate-700 text-slate-200' : 'bg-white border border-slate-200 text-slate-800'
       }`}>

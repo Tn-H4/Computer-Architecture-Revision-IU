@@ -306,8 +306,7 @@ const Chapter1 = () => {
 
               {/* Q1a Step-by-Step Dropdown */}
               {revealed.q1a && (
-                <div className="mt-4 p-4 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 overflow-x-auto">                  <h4 className={`font-bold mb-2 ${themeVars.stepHeader}`}>Step-by-Step Solution:</h4>
-                  <p>Total Cycles = ({(vars.q1.ic * vars.q1.pLS / 100).toFixed(0)} × {vars.q1.cpiLS}) + ({(vars.q1.ic * vars.q1.pJump / 100).toFixed(0)} × {vars.q1.cpiJump}) + ({(vars.q1.ic * vars.q1.pBranch / 100).toFixed(0)} × {vars.q1.cpiBranch}) + ({(vars.q1.ic * vars.q1.pArith / 100).toFixed(0)} × {vars.q1.cpiArith}) = <strong>{vars.q1.q1Cycles.toFixed(0)} cycles</strong></p>
+                <div className={`mt-4 p-4 rounded-xl border overflow-x-auto ${themeVars.answerKeyBg}`}>                  <p>Total Cycles = ({(vars.q1.ic * vars.q1.pLS / 100).toFixed(0)} × {vars.q1.cpiLS}) + ({(vars.q1.ic * vars.q1.pJump / 100).toFixed(0)} × {vars.q1.cpiJump}) + ({(vars.q1.ic * vars.q1.pBranch / 100).toFixed(0)} × {vars.q1.cpiBranch}) + ({(vars.q1.ic * vars.q1.pArith / 100).toFixed(0)} × {vars.q1.cpiArith}) = <strong>{vars.q1.q1Cycles.toFixed(0)} cycles</strong></p>
                   <p className="mt-3 flex items-center flex-wrap">
                     <span>CPU Time =</span> 
                     <MathFraction num="Total Cycles" den="Clock Rate" isDark={isDark} /> 

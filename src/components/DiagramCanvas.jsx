@@ -107,7 +107,7 @@ const useWireLogic = (id, type) => {
     : (activeWires.length > 0 || activeControlWires.length > 0);
   
   const inactiveColor = theme === 'dark' ? '#475569' : '#cbd5e1'; 
-  const currentOpacity = isActive ? 1 : (hasAnyActive ? 0.3 : 1); 
+  const currentOpacity = isActive ? 1 : (hasAnyActive ? 0.5 : 1); 
 
   const style = type === 'stroke' 
     ? { stroke: isActive ? activeColor : inactiveColor, opacity: currentOpacity }
@@ -133,11 +133,12 @@ const useWireLogic = (id, type) => {
 // FAT HITBOX COMPONENTS
 const WirePath = ({ id, type = 'fill', d }) => {
   const { style, className, handleClick } = useWireLogic(id, type);
+  const hitboxFill = type === 'stroke' ? 'none' : 'transparent';
+  const hitboxStrokeWidth = type === 'stroke' ? '18' : '6';
   return (
     <g onClick={handleClick} onMouseDown={(e) => e.stopPropagation()} className="cursor-pointer group">
-      <path d={d} stroke="transparent" fill="transparent" strokeWidth="25" />
-      <path d={d} className={`${className} group-hover:opacity-100 group-hover:drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]`} style={{...style, pointerEvents: 'none'}} />
-    </g>
+      <path d={d} stroke="transparent" fill={hitboxFill} strokeWidth={hitboxStrokeWidth} />
+      <path d={d} className={`${className} transition-opacity duration-200 group-hover:opacity-100`} style={{...style, pointerEvents: 'none'}} />    </g>
   );
 };
 
@@ -145,14 +146,13 @@ const WireLine = ({ id, x1, y1, x2, y2 }) => {
   const { style, className, handleClick } = useWireLogic(id, 'stroke');
   return (
     <g onClick={handleClick} onMouseDown={(e) => e.stopPropagation()} className="cursor-pointer group">
-      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth="25" fill="none" />
-      <line x1={x1} y1={y1} x2={x2} y2={y2} className={`${className} group-hover:opacity-100 group-hover:drop-shadow-[0_0_6px_rgba(255,255,255,0.6)]`} style={{...style, pointerEvents: 'none'}} />
-    </g>
+      <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="transparent" strokeWidth="18" fill="none" />
+      <line x1={x1} y1={y1} x2={x2} y2={y2} className={`${className} transition-opacity duration-200 group-hover:opacity-100`} style={{...style, pointerEvents: 'none'}} />    </g>
   );
 };
 
 // MAIN DIAGRAM CANVAS
-export default function DiagramCanvas({ onToggleLeft, onToggleRight }) {
+export default function DiagramCanvas({ onToggleLeft, onToggleRight, onToggleExpand, isExpanded }) { // Updated props
   const { 
     setHoveredComponent, setSelectedComponent, selectedComponent, hoveredComponent,
     activeWires = [], activeControlWires = [], interactionMode, activeInstruction,
@@ -329,14 +329,39 @@ export default function DiagramCanvas({ onToggleLeft, onToggleRight }) {
           )}
         </div>
 
-        {/* RIGHT BUTTON (Mobile/Tablet Only) */}
-        <button 
-          onClick={onToggleRight}
-          className={`lg:hidden flex items-center justify-center w-10 h-10 rounded-md transition-colors border shadow-sm shrink-0 ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600'}`}
-          title="Open Data Panel"
-        >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        </button>
+        {/* RIGHT SIDE BUTTONS */}
+        <div className="flex items-center gap-2 shrink-0">
+          
+          {/* EXPAND/RESTORE BUTTON (Desktop Only) */}
+          <button 
+            onClick={onToggleExpand}
+            className={`hidden lg:flex items-center justify-center px-3 py-2 font-semibold text-sm rounded-md transition-colors border shadow-sm ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600'}`}
+            title={isExpanded ? "Restore Sidebars" : "Expand Diagram"}
+          >
+            {isExpanded ? (
+              <>
+                <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8h4V4m0 16v-4H4m16-4h-4v4m0-16v4h4" />
+                </svg>
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                </svg>
+              </>
+            )}
+          </button>
+
+          {/* RIGHT BUTTON (Mobile/Tablet Only) */}
+          <button 
+            onClick={onToggleRight}
+            className={`lg:hidden flex items-center justify-center w-10 h-10 rounded-md transition-colors border shadow-sm ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600'}`}
+            title="Open Data Panel"
+          >
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+          </button>
+        </div>
 
         {isPractice && verificationState?.machineCode === false && (
          <div className={`absolute -bottom-6 left-1/2 transform -translate-x-1/2 px-5 py-1.5 rounded-full border shadow-lg z-30 flex items-center gap-3 transition-all duration-300 animate-in slide-in-from-top-2 ${
@@ -373,8 +398,7 @@ export default function DiagramCanvas({ onToggleLeft, onToggleRight }) {
 
       {/* PAN AND ZOOM WRAPPER */}
       <div 
-        className={`flex-1 w-full h-full relative overflow-hidden flex justify-center items-center touch-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-        onMouseDown={handleMouseDown}
+        className="flex-1 w-full h-full relative overflow-hidden flex justify-center items-center touch-none cursor-default"        onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}

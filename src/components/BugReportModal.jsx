@@ -6,11 +6,6 @@ export default function BugReportModal() {
 
   if (!isBugModalOpen) return null;
 
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting }, } = useForm({
-    resolver: zodResolver(userSchema),
-    defaultValues,
-  });
-
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       {/* Dark semi-transparent overlay */}
@@ -61,7 +56,7 @@ export default function BugReportModal() {
             href="https://forms.gle/yfHfPUdGsn7S7mqv9" 
             target="_blank" 
             rel="noopener noreferrer"
-            onClick={() => setBugModalOpen(false)} /* Closes popup after they click link */
+            onClick={() => setBugModalOpen(false)}
             className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors shadow-md"
           >
             Proceed to Google Form

@@ -235,7 +235,6 @@ const Chapter5 = () => {
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-8 mt-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold">Chapter 5: Cache Memory</h1>
-            <p className={`mt-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>Calculate blocks, address logic, and physical cache size.</p>
           </div>
           <div className="flex gap-4 items-center">
             <button 

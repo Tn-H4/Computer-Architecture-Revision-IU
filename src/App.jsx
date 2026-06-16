@@ -22,6 +22,16 @@ function App() {
   const [isPanelOpen, setIsPanelOpen] = useState(true);   // Left Panel (Instructions)
   const [isSidebarOpen, setIsSidebarOpen] = useState(true); // Right Panel (Sidebar/Menu)
 
+  const handleToggleExpand = () => {
+    if (isPanelOpen || isSidebarOpen) {
+      setIsPanelOpen(false);
+      setIsSidebarOpen(false);
+    } else {
+      setIsPanelOpen(true);
+      setIsSidebarOpen(true);
+    }
+  };
+
   // Automatically close sidebars on smaller screens on initial load
   useEffect(() => {
     const handleResize = () => {
@@ -69,6 +79,8 @@ function App() {
               <DiagramCanvas 
                 onToggleLeft={() => setIsPanelOpen(true)} 
                 onToggleRight={() => setIsSidebarOpen(true)} 
+                onToggleExpand={handleToggleExpand} // ADDED
+                isExpanded={!isPanelOpen && !isSidebarOpen} // ADDED
               />
               
             </div>

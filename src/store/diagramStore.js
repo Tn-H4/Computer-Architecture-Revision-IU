@@ -91,6 +91,18 @@ export const useDiagramStore = create((set, get) => ({
   practiceInput: '',
   practiceMachineCode: '',
   showAnswerKey: false,
+  
+  revealAnswerKey: () => set({ 
+    showAnswerKey: true, 
+    showCorrectWires: true 
+  }),
+  
+  resetVerification: () => set({ 
+    verificationState: null, 
+    showAnswerKey: false, 
+    showCorrectWires: false 
+  }),
+  
   setShowAnswerKey: (val) => set({ showAnswerKey: val }),
   setPracticeInput: (input) => {
     set((state) => {

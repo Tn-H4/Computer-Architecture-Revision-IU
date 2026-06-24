@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Xarrow, { Xwrapper } from 'react-xarrows'; 
 import { useDiagramStore } from '../../store/diagramStore';
-import { generateMipsProblem } from '../../utils/pipelineHazardEngine.js';
+import { parseUserInstructions, evaluatePipeline, generateRandomSequence } from '../../utils/pipelineHazardEngine.js';
 
 const XarrowComponent = Xarrow.default || Xarrow;
 
@@ -17,21 +17,28 @@ const getMiniGridStyle = (cell) => {
   }
 };
 
-// --- SIDEBAR ARCHITECTURE ---
-const HazardSidebar = ({ setGridInstructions, userGrid, onClose, exerciseMode = 'stall' }) => {
+const HazardSidebar = ({ userInstructions, setGridInstructions, userGrid, onClose, exerciseMode = 'stall' }) => {
   const { theme } = useDiagramStore();
   
-  const [problem, setProblem] = useState(generateMipsProblem);
+  // Track dynamically computed answers based on the grid
+  const [evaluatedProblem, setEvaluatedProblem] = useState(null);
+
   const [userAnswers, setUserAnswers] = useState({ hazards: '', stalls: '', cycles: '', mux: '' });
   const [feedback, setFeedback] = useState(null);
   const [showSolution, setShowSolution] = useState(false); 
   const [showMuxRef, setShowMuxRef] = useState(false);
 
+  // Automatically recalculate answers when the user edits instructions in the left panel
   useEffect(() => {
-    if (setGridInstructions && problem) {
-      setGridInstructions(problem.instructions.map(inst => inst.split(': ')[1]));
+    if (userInstructions && userInstructions.length > 0) {
+      const parsed = parseUserInstructions(userInstructions);
+      setEvaluatedProblem(evaluatePipeline(parsed));
+      
+      // Hide old solutions if user is modifying things
+      setShowSolution(false);
+      setFeedback(null);
     }
-  }, [problem, setGridInstructions]);
+  }, [userInstructions]);
 
   useEffect(() => {
     setUserAnswers({ hazards: '', stalls: '', cycles: '', mux: '' });
@@ -41,15 +48,17 @@ const HazardSidebar = ({ setGridInstructions, userGrid, onClose, exerciseMode = 
   }, [exerciseMode]);
 
   const handleGenerateNew = () => {
-    setProblem(generateMipsProblem());
+    setGridInstructions(generateRandomSequence());
     setUserAnswers({ hazards: '', stalls: '', cycles: '', mux: '' });
     setFeedback(null);
     setShowSolution(false);
   };
 
   const handleVerify = () => {
+    if (!evaluatedProblem) return;
+
     setShowSolution(true);
-    const activeAnswers = exerciseMode === 'stall' ? problem.stallAnswers : problem.fwdAnswers;
+    const activeAnswers = exerciseMode === 'stall' ? evaluatedProblem.stallAnswers : evaluatedProblem.fwdAnswers;
 
     const isHazardsCorrect = userAnswers.hazards.trim().toLowerCase() === activeAnswers.hazards.toLowerCase();
     const isStallsCorrect = userAnswers.stalls.trim() === activeAnswers.stalls;
@@ -59,7 +68,7 @@ const HazardSidebar = ({ setGridInstructions, userGrid, onClose, exerciseMode = 
       ? true 
       : userAnswers.mux.trim().replace(/\s+/g, '').toLowerCase() === activeAnswers.mux.replace(/\s+/g, '').toLowerCase();
 
-    const targetedGridSolution = exerciseMode === 'stall' ? problem.stallSolutionGrid : problem.fwdSolutionGrid;
+    const targetedGridSolution = exerciseMode === 'stall' ? evaluatedProblem.stallSolutionGrid : evaluatedProblem.fwdSolutionGrid;
     let isGridCorrect = true;
     let firstErrorRow = -1;
 
@@ -89,14 +98,13 @@ const HazardSidebar = ({ setGridInstructions, userGrid, onClose, exerciseMode = 
     }
   };
 
-  // --- DYNAMIC THEMING VARIABLES ---
   const bgTheme = theme === 'dark' ? 'bg-slate-800' : 'bg-slate-100';
   const textTheme = theme === 'dark' ? 'text-white' : 'text-slate-900';
   const borderTheme = theme === 'dark' ? 'border-slate-700' : 'border-slate-300';
   const inputBg = theme === 'dark' ? 'bg-slate-900 border-slate-600 focus:border-blue-500' : 'bg-white border-slate-300 focus:border-blue-400';
 
-  const currentKey = exerciseMode === 'stall' ? problem.stallAnswers : problem.fwdAnswers;
-  const currentMatrix = exerciseMode === 'stall' ? problem.stallSolutionGrid : problem.fwdSolutionGrid;
+  const currentKey = evaluatedProblem ? (exerciseMode === 'stall' ? evaluatedProblem.stallAnswers : evaluatedProblem.fwdAnswers) : null;
+  const currentMatrix = evaluatedProblem ? (exerciseMode === 'stall' ? evaluatedProblem.stallSolutionGrid : evaluatedProblem.fwdSolutionGrid) : [];
 
   return (
     <div className={`w-full h-full flex flex-col border-l shrink-0 overflow-y-auto overflow-x-hidden ${bgTheme} ${borderTheme} shadow-xl z-50 relative`}>
@@ -236,8 +244,7 @@ const HazardSidebar = ({ setGridInstructions, userGrid, onClose, exerciseMode = 
           </div>
         )}
 
-        {/* --- DYNAMIC SOLUTION PRESENTATION MODULE --- */}
-        {showSolution && (
+        {showSolution && currentKey && (
           <div className={`p-4 rounded-xl border flex flex-col gap-4 animate-in fade-in slide-in-from-top-4 duration-300 overflow-hidden ${
             theme === 'dark' ? 'bg-slate-900 border-slate-700' : 'bg-white border-slate-300 shadow-sm'
           }`}>
@@ -259,9 +266,8 @@ const HazardSidebar = ({ setGridInstructions, userGrid, onClose, exerciseMode = 
             <div className={`pt-3 border-t overflow-x-auto pb-6 relative min-h-[150px] ${theme === 'dark' ? 'border-slate-700/50' : 'border-slate-200'}`}>
               <span className="opacity-60 text-xs block mb-2">Target Matrix Layout:</span>
               
-              {/* MINI XWRAPPER FOR ARROWS */}
               <Xwrapper>
-                {exerciseMode === 'forwarding' && problem.solutionFwdPaths.map((path, idx) => {
+                {exerciseMode === 'forwarding' && evaluatedProblem.solutionFwdPaths.map((path, idx) => {
                   const fromCol = currentMatrix[path.from.row].lastIndexOf(path.from.stage);
                   const toCol = currentMatrix[path.to.row].indexOf(path.to.stage);
 

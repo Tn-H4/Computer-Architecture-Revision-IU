@@ -44,12 +44,12 @@ const FeedbackInput = ({ name, value, onChange, isCorrect, correctValue, placeho
 );
 
 const Sidebar = ({ onClose }) => {
-  const [showHint, setShowHint] = useState(false);
 
   const { 
     interactionMode, practiceInput, verificationState, verifyPracticeSubmission,
     currentCycle, playCycle, prevCycle, skipToCycleEnd, clearWires, 
-    isAnimating, activeInstruction, answers, setAnswers, verifyAnswers, theme
+    isAnimating, activeInstruction, answers, setAnswers, verifyAnswers, theme,
+    showAnswerKey
   } = useDiagramStore();
   
   const instructionDetails = {
@@ -130,16 +130,6 @@ const Sidebar = ({ onClose }) => {
             <span className={`text-2xl font-bold font-mono ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}>{displayData.name}</span>
             <span className={`text-xs font-semibold whitespace-pre-line ${theme === 'dark' ? 'text-slate-300' : 'text-slate-600'}`}>{displayData.description}</span>
           </div>
-          <button onClick={() => setShowHint(!showHint)} className={`text-xs underline mt-1 ${theme === 'dark' ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'}`}>
-            {showHint ? 'Hide Binary Breakdown' : 'Show Binary Breakdown'}
-          </button>
-          {showHint && (
-            <div className={`mt-2 p-2 rounded font-mono text-xs text-center border break-all ${
-              theme === 'dark' ? 'bg-slate-950 text-emerald-400 border-slate-700' : 'bg-slate-100 text-emerald-700 border-slate-200'
-            }`}>
-              {displayData.binary}
-            </div>
-          )}
         </div>
       ) : (
         <div className={`rounded-lg p-4 border shrink-0 transition-all shadow-[0_0_15px_rgba(168,85,247,0.15)] ${
@@ -272,7 +262,7 @@ const Sidebar = ({ onClose }) => {
                   <option value="1">1</option>
                   <option value="X">X</option>
                 </select>
-                {isCorrect === false && correctAnswers?.signals && (
+                {isCorrect === false && showAnswerKey && correctAnswers?.signals && (
                   <span className="text-[10px] text-rose-500 font-bold">Ans: {correctAnswers.signals[signal]}</span>
                 )}
               </div>

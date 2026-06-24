@@ -1,37 +1,54 @@
-export function generateMipsProblem() {
-  const opcodes = ['add', 'sub', 'and', 'or', 'lw', 'sw'];
-  const registers = ['$t1', '$t2', '$t3', '$t4', '$t5'];
-  const length = Math.floor(Math.random() * 4) + 4; 
-
-  let instructions = [];
+// Parses the string instructions typed by the user into an object the engine can read
+export const parseUserInstructions = (instArray) => {
   let parsedInstructions = [];
+  let validIndex = 1;
 
-  for (let i = 0; i < length; i++) {
-    const op = opcodes[Math.floor(Math.random() * opcodes.length)];
-    const dest = registers[Math.floor(Math.random() * registers.length)];
-    const src1 = registers[Math.floor(Math.random() * registers.length)];
-    const src2 = registers[Math.floor(Math.random() * registers.length)];
-    const offset = Math.floor(Math.random() * 20) * 4;
+  instArray.forEach((instStr) => {
+    if (!instStr || instStr.trim() === '') return;
+    
+    // Normalize string: convert commas and parentheses to spaces
+    const cleanStr = instStr.trim().replace(/,/g, ' ').replace(/\(/g, ' ').replace(/\)/g, ' ');
+    const parts = cleanStr.split(/\s+/).filter(Boolean);
+    if (parts.length < 2) return;
 
-    let instString = '';
+    const op = parts[0].toLowerCase();
+    let dest = '', src1 = '', src2 = '';
     let reads = [], writes = [];
 
     if (op === 'lw') {
-      instString = `${op} ${dest}, ${offset}(${src1})`;
-      reads = [src1]; writes = [dest];
+      dest = parts[1];       
+      src1 = parts[3];       // parts[2] is the offset
+      reads = [src1].filter(Boolean);
+      writes = [dest].filter(Boolean);
     } else if (op === 'sw') {
-      instString = `${op} ${dest}, ${offset}(${src1})`;
-      reads = [dest, src1]; writes = [];
-    } else {
-      instString = `${op} ${dest}, ${src1}, ${src2}`;
-      reads = [src1, src2]; writes = [dest];
+      dest = parts[1];       // value to store (acts as read)
+      src1 = parts[3];       // base address (acts as read)
+      reads = [dest, src1].filter(Boolean);
+      writes = [];
+    } else if (['add', 'sub', 'and', 'or', 'slt'].includes(op)) {
+      dest = parts[1];
+      src1 = parts[2];
+      src2 = parts[3];
+      reads = [src1, src2].filter(Boolean);
+      writes = [dest].filter(Boolean);
+    } else if (op === 'beq' || op === 'bne') {
+      src1 = parts[1];
+      src2 = parts[2];
+      reads = [src1, src2].filter(Boolean);
+      writes = [];
     }
 
-    instructions.push(`${i + 1}: ${instString}`);
-    parsedInstructions.push({ index: i + 1, op, src1, src2, dest, reads, writes });
-  }
+    parsedInstructions.push({ index: validIndex++, op, src1, src2, dest, reads, writes, original: instStr });
+  });
+  return parsedInstructions;
+};
 
-  // --- 1. STALL-ONLY MATH ENGINE ---
+// Computes the pipeline grids and required answers
+export const evaluatePipeline = (parsedInstructions) => {
+  const length = parsedInstructions.length;
+  if (length === 0) return null;
+
+  // --- STALL-ONLY MATH ENGINE ---
   let stallHazards = [];
   let totalStallsOnly = 0;
   let regReadyCycleStall = {}; 
@@ -68,7 +85,7 @@ export function generateMipsProblem() {
   }
   const maxCyclesStall = Math.max(...stallSolutionGrid.map(r => r.length));
 
-  // --- 2. ADVANCED FORWARDING & MULTIPLEXER MATH ENGINE ---
+  // --- ADVANCED FORWARDING ENGINE ---
   let fwdHazards = [];
   let solutionFwdPaths = []; 
   let remainingStalls = 0;
@@ -81,7 +98,6 @@ export function generateMipsProblem() {
   for (let i = 0; i < parsedInstructions.length; i++) {
     const inst = parsedInstructions[i];
     let baseIM = currentIssueFwd;
-    let baseID = baseIM + 1;
     
     let needsLoadStall = false;
     let loadUseFwdA = false;
@@ -103,7 +119,6 @@ export function generateMipsProblem() {
 
     let s = needsLoadStall ? 1 : 0;
     remainingStalls += s;
-    
     let actIM = baseIM + s;
     currentIssueFwd = actIM + 1;
 
@@ -168,7 +183,6 @@ export function generateMipsProblem() {
   const maxCyclesFwd = Math.max(...fwdSolutionGrid.map(r => r.length));
 
   return {
-    instructions,
     stallSolutionGrid,
     fwdSolutionGrid,
     solutionFwdPaths, 
@@ -186,3 +200,24 @@ export function generateMipsProblem() {
   };
 };
 
+export const generateRandomSequence = () => {
+  const opcodes = ['add', 'sub', 'and', 'or', 'lw', 'sw'];
+  const registers = ['$t1', '$t2', '$t3', '$t4', '$t5'];
+  const length = Math.floor(Math.random() * 4) + 4; 
+  let instructions = [];
+
+  for (let i = 0; i < length; i++) {
+    const op = opcodes[Math.floor(Math.random() * opcodes.length)];
+    const dest = registers[Math.floor(Math.random() * registers.length)];
+    const src1 = registers[Math.floor(Math.random() * registers.length)];
+    const src2 = registers[Math.floor(Math.random() * registers.length)];
+    const offset = Math.floor(Math.random() * 20) * 4;
+
+    if (op === 'lw' || op === 'sw') {
+      instructions.push(`${op} ${dest}, ${offset}(${src1})`);
+    } else {
+      instructions.push(`${op} ${dest}, ${src1}, ${src2}`);
+    }
+  }
+  return instructions;
+};

@@ -31,7 +31,10 @@ export default function InstructionPanel({ onClose }) {
     toggleMenu,       
     currentChapter,   
     practiceInput, setPracticeInput, verifyPracticeSubmission,
-    setShowAnswerKey, verificationState 
+    setShowAnswerKey, verificationState,
+    showAnswerKey,
+    revealAnswerKey,
+    resetVerification
   } = useDiagramStore();
 
   const [practiceChecked, setPracticeChecked] = useState(false);
@@ -60,6 +63,7 @@ export default function InstructionPanel({ onClose }) {
   const handleShowAnswerKey = () => {
     setShowKey(true);
     if (setShowAnswerKey) setShowAnswerKey(true);
+    revealAnswerKey();
   };
 
   const resetPractice = () => {
@@ -67,7 +71,7 @@ export default function InstructionPanel({ onClose }) {
     setIsCorrect(false);
     setShowKey(false);
     if (setShowAnswerKey) setShowAnswerKey(false);
-    clearWires();
+    resetVerification();
   };
 
   const handleModeChange = (mode) => {
@@ -228,7 +232,7 @@ export default function InstructionPanel({ onClose }) {
                     : 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-300'
                 }`}
               >
-                Turn Off Lights
+                Clear Diagram Wires
               </button>
             </div>
           )}
@@ -283,6 +287,19 @@ export default function InstructionPanel({ onClose }) {
                 Wires Selected: <span className="font-bold text-purple-500">{userSelectedWires.length}</span>
               </div>
 
+              {interactionMode === 'practice_click' && (
+                <button 
+                  onClick={clearWires}
+                  className={`w-full mt-4 py-2 px-4 rounded-lg font-bold text-sm transition-all border-2 border-dashed ${
+                    theme === 'dark' 
+                      ? 'border-slate-700 text-slate-400 hover:text-rose-400 hover:border-rose-500 hover:bg-slate-800' 
+                      : 'border-slate-300 text-slate-500 hover:text-rose-500 hover:border-rose-400 hover:bg-slate-50'
+                  }`}
+                >
+                  Clear Diagram Wires
+                </button>
+              )}
+
               {/* VERIFICATION BUTTONS */}
               {!practiceChecked ? (
                 <button 
@@ -320,7 +337,7 @@ export default function InstructionPanel({ onClose }) {
                     )}
                   </div>
                   
-                  {!isCorrect && !showKey && (
+                  {!isCorrect && !showAnswerKey && (
                     <button 
                       onClick={handleShowAnswerKey}
                       className="bg-amber-600 hover:bg-amber-500 text-white py-2 px-4 rounded-lg font-bold transition-all shadow-lg"

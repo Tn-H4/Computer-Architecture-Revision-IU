@@ -2,15 +2,19 @@ import React, { useState, useEffect } from 'react';
 import PipelineGrid from './PipelineGrid';
 import HazardSidebar from './HazardSidebar';
 
+const INITIAL_INSTRUCTIONS = [
+  'lw $t1, 0($t0)', 'lw $t2, 4($t0)', 'add $t3, $t1, $t2', 'sw $t3, 12($t0)', 
+  'lw $t4, 8($t0)', 'sub $t5, $t1, $t3', 'and $t6, $t2, $t4', 'or $t7, $t5, $t6', 
+  'slt $t8, $t6, $t7', 'beq $t1, $t2, label'
+];
+
 export default function PipelinePage() {
-  const [sharedInstructions, setSharedInstructions] = useState([]);
+  const [sharedInstructions, setSharedInstructions] = useState(INITIAL_INSTRUCTIONS);
   const [sharedGrid, setSharedGrid] = useState(Array(10).fill(null).map(() => Array(20).fill(null)));
   const [exerciseMode, setExerciseMode] = useState('stall');
 
-  // --- RESPONSIVE STATE ---
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
-  // Automatically close sidebar on smaller screens on initial load
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 1024) {
@@ -21,14 +25,13 @@ export default function PipelinePage() {
     };
     
     window.addEventListener('resize', handleResize);
-    handleResize(); // Trigger on mount
+    handleResize(); 
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   return (
     <div className="flex h-screen w-full overflow-hidden relative">
       
-      {/* Left Content Side (Main Grid) */}
       <div className="flex-1 min-w-0 flex flex-col">
         <PipelineGrid 
           externalInstructions={sharedInstructions} 
@@ -41,7 +44,6 @@ export default function PipelinePage() {
         />
       </div>
 
-      {/* Right Sidebar Side */}
       <div 
         className={`
           absolute right-0 lg:relative z-30 h-full transition-all duration-300 ease-in-out flex-shrink-0
@@ -50,7 +52,7 @@ export default function PipelinePage() {
       >
         <div className="w-[85vw] sm:w-80 h-full shadow-xl lg:shadow-none border-l border-slate-800 bg-slate-900">
           <HazardSidebar 
-            theme="dark" 
+            userInstructions={sharedInstructions} 
             setGridInstructions={setSharedInstructions} 
             userGrid={sharedGrid}
             exerciseMode={exerciseMode}
@@ -59,7 +61,6 @@ export default function PipelinePage() {
         </div>
       </div>
 
-      {/* Mobile Backdrop Overlay */}
       {isSidebarOpen && (
         <div 
           className="lg:hidden absolute inset-0 bg-slate-900/30 backdrop-blur-sm z-20 transition-opacity"
@@ -70,4 +71,3 @@ export default function PipelinePage() {
     </div>
   );
 };
-

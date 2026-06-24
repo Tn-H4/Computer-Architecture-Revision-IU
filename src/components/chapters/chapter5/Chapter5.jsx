@@ -1,103 +1,15 @@
 import React, { useState } from 'react';
-import { useDiagramStore } from '../store/diagramStore';
+import { useDiagramStore } from '../../../store/diagramStore';
 
-// --- ICONS & HELPER COMPONENTS ---
-
-const KeyIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-    <path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"></path>
-    <path d="m21 2-9.6 9.6"></path>
-    <circle cx="7.5" cy="15.5" r="5.5"></circle>
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-sm">
-    <polyline points="20 6 9 17 4 12"></polyline>
-  </svg>
-);
-
-const CrossIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="drop-shadow-sm">
-    <line x1="18" y1="6" x2="6" y2="18"></line>
-    <line x1="6" y1="6" x2="18" y2="18"></line>
-  </svg>
-);
-
-const DiceIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-    <circle cx="8.5" cy="8.5" r="1.5"></circle>
-    <circle cx="15.5" cy="15.5" r="1.5"></circle>
-    <circle cx="15.5" cy="8.5" r="1.5"></circle>
-    <circle cx="8.5" cy="15.5" r="1.5"></circle>
-  </svg>
-);
-
-const MathFraction = ({ num, den, isDark }) => (
-  <span className="inline-flex flex-col items-center justify-center align-middle mx-2 text-base">
-    <span className={`border-b pb-0.5 px-2 ${isDark ? 'border-emerald-400' : 'border-emerald-600'}`}>{num}</span>
-    <span className="pt-0.5 px-2">{den}</span>
-  </span>
-);
-
-// --- RANDOMIZATION ENGINE ---
-
-const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
-const generateVariables = () => {
-  // Common
-  const wordSize = 4; // bytes per word
-  const addressBits = 32;
-
-  // Q1 Variables (Direct Mapped)
-  const q1CacheSizeKB = pick([4, 8, 16, 32]);
-  const q1BlockSizeWords = pick([4, 8, 16]);
-  
-  const q1CacheSizeBytes = q1CacheSizeKB * 1024;
-  const q1BlockSizeBytes = q1BlockSizeWords * wordSize;
-  const q1NumBlocks = q1CacheSizeBytes / q1BlockSizeBytes;
-  const q1OffsetBits = Math.log2(q1BlockSizeBytes);
-  const q1IndexBits = Math.log2(q1NumBlocks);
-  const q1TagBits = addressBits - q1IndexBits - q1OffsetBits;
-  const q1TotalBits = q1NumBlocks * ((q1BlockSizeWords * 32) + q1TagBits + 1);
-
-  // Q2 Variables (Set Associative)
-  const q2NWay = pick([2, 4, 8]);
-  const q2CacheSizeKB = pick([8, 16, 32, 64]);
-  const q2BlockSizeWords = pick([4, 8, 16]);
-
-  const q2CacheSizeBytes = q2CacheSizeKB * 1024;
-  const q2BlockSizeBytes = q2BlockSizeWords * wordSize;
-  const q2TotalBlocks = q2CacheSizeBytes / q2BlockSizeBytes;
-  const q2NumSets = q2TotalBlocks / q2NWay;
-  const q2OffsetBits = Math.log2(q2BlockSizeBytes);
-  const q2IndexBits = Math.log2(q2NumSets);
-  const q2TagBits = addressBits - q2IndexBits - q2OffsetBits;
-  const q2TotalBits = q2TotalBlocks * ((q2BlockSizeWords * 32) + q2TagBits + 1);
-
-  // Q3 Variables (Fully Associative)
-  const q3CacheSizeKB = pick([4, 8, 16, 32]);
-  const q3BlockSizeWords = pick([4, 8, 16]);
-  
-  const q3CacheSizeBytes = q3CacheSizeKB * 1024;
-  const q3BlockSizeBytes = q3BlockSizeWords * wordSize;
-  const q3NumBlocks = q3CacheSizeBytes / q3BlockSizeBytes;
-  const q3OffsetBits = Math.log2(q3BlockSizeBytes);
-  const q3IndexBits = 0; // Fully associative has no index
-  const q3TagBits = addressBits - q3OffsetBits;
-  const q3TotalBits = q3NumBlocks * ((q3BlockSizeWords * 32) + q3TagBits + 1);
-
-  return {
-    q1: { cacheSize: q1CacheSizeKB, blockWords: q1BlockSizeWords, cacheBytes: q1CacheSizeBytes, blockBytes: q1BlockSizeBytes, ansBlocks: q1NumBlocks, ansOffset: q1OffsetBits, ansIndex: q1IndexBits, ansTag: q1TagBits, ansTotalBits: q1TotalBits },
-    q2: { nWay: q2NWay, cacheSize: q2CacheSizeKB, blockWords: q2BlockSizeWords, cacheBytes: q2CacheSizeBytes, blockBytes: q2BlockSizeBytes, totalBlocks: q2TotalBlocks, ansSets: q2NumSets, ansOffset: q2OffsetBits, ansIndex: q2IndexBits, ansTag: q2TagBits, ansTotalBits: q2TotalBits },
-    q3: { cacheSize: q3CacheSizeKB, blockWords: q3BlockSizeWords, cacheBytes: q3CacheSizeBytes, blockBytes: q3BlockSizeBytes, ansBlocks: q3NumBlocks, ansOffset: q3OffsetBits, ansIndex: q3IndexBits, ansTag: q3TagBits, ansTotalBits: q3TotalBits }
-  };
-};
+import { generateVariables } from '../../../utils/chapter5Engine.js';
+import { KeyIcon, CheckIcon, CrossIcon, DiceIcon } from '../../shared/WorksheetIcons';
+import MathFraction from '../../shared/MathFraction';
+import { getWorksheetTheme } from '../../shared/worksheetTheme';
+import { checkAnswer } from '../../../utils/worksheetHelpers.js';
 
 // --- MAIN COMPONENT ---
 
-const Chapter5 = () => {
+export default function Chapter5() {
   const { theme } = useDiagramStore();
   
   const [mode, setMode] = useState('practice');
@@ -674,4 +586,3 @@ const Chapter5 = () => {
   );
 };
 
-export default Chapter5;

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useDiagramStore } from '../store/diagramStore';
-import { SunIcon, MoonIcon } from './Icons'; 
+import { useDiagramStore } from '../../store/diagramStore';
+import { SunIcon, MoonIcon } from '../shared/Icons'; 
 
 // --- SCROLLBAR STYLES ---
 const PanelScrollbarStyles = ({ theme }) => (

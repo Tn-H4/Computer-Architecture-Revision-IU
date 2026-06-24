@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import Chapter4_2 from './Chapter4_2';
+import PipelineGrid from './PipelineGrid';
 import HazardSidebar from './HazardSidebar';
 
-const Chapter4Page = () => {
+export default function PipelinePage() {
   const [sharedInstructions, setSharedInstructions] = useState([]);
   const [sharedGrid, setSharedGrid] = useState(Array(10).fill(null).map(() => Array(20).fill(null)));
   const [exerciseMode, setExerciseMode] = useState('stall');
@@ -30,7 +30,7 @@ const Chapter4Page = () => {
       
       {/* Left Content Side (Main Grid) */}
       <div className="flex-1 min-w-0 flex flex-col">
-        <Chapter4_2 
+        <PipelineGrid 
           externalInstructions={sharedInstructions} 
           setExternalInstructions={setSharedInstructions} 
           externalGrid={sharedGrid}
@@ -71,4 +71,3 @@ const Chapter4Page = () => {
   );
 };
 
-export default Chapter4Page;

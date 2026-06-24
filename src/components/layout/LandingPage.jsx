@@ -1,17 +1,11 @@
 import React from 'react';
-import { useDiagramStore } from '../store/diagramStore';
+import { CHAPTERS } from '../../config/chapters.js';
+import { useDiagramStore } from '../../store/diagramStore';
 
 export default function LandingPage() {
   const { theme, setChapter } = useDiagramStore();
 
-  const chapters = [
-      { id: 1, title: "Chapter 1: CPU Performance", desc: "Execution time, CPI, and performance metrics." },
-      { id: 2, title: "Chapter 2: MIPS Instructions", desc: "Registers, memory maps, and machine code." },
-      { id: 3, title: "Chapter 3: IEEE-754 Floating Point", desc: "Binary representation of fractional numbers." },
-      { id: 4.1, title: "Chapter 4.1: CPU Data Path", desc: "Tracing the single-cycle processor datapath." },
-      { id: 4.2, title: "Chapter 4.2: Pipeline", desc: "Stalls, forwarding, and data hazards." },
-      { id: 5, title: "Chapter 5: Memory Hierarchy", desc: "Caching, RAM, and memory optimization." }
-    ];
+  const chapters = CHAPTERS.map(({ id, title, desc }) => ({ id, title, desc }));
 
   return (
     <div className={`flex flex-col h-screen overflow-y-auto w-full transition-colors duration-300 ${theme === 'dark' ? 'bg-slate-950 text-slate-200' : 'bg-slate-50 text-slate-800'}`}>

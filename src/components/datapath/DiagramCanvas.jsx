@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useDiagramStore } from '../store/diagramStore';
+import { useDiagramStore } from '../../store/diagramStore';
 
 const BINARY_UI = {
   'add': [
@@ -277,124 +277,136 @@ export default function DiagramCanvas({ onToggleLeft, onToggleRight, onToggleExp
   return (
     <div className={`flex-1 flex flex-col justify-start items-center w-full h-full relative transition-colors duration-300 overflow-hidden ${theme === 'dark' ? 'bg-slate-950' : 'bg-slate-50'}`}>
       
-      <div className={`w-full border-b p-3 flex flex-row justify-between items-center z-20 min-h-[6rem] relative transition-colors duration-300 shrink-0 ${theme === 'dark' ? 'bg-slate-900 border-slate-800 shadow-md' : 'bg-white border-slate-200 shadow-sm'}`}>
-        
-        {/* LEFT BUTTON (Mobile/Tablet Only) */}
-        <button 
-          onClick={onToggleLeft}
-          className={`lg:hidden flex items-center justify-center w-10 h-10 rounded-md transition-colors border shadow-sm shrink-0 ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600'}`}
-          title="Open Instructions"
-        >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
-        </button>
+      {!isExpanded && (
+          <div className={`w-full border-b p-3 flex flex-row justify-between items-center z-20 min-h-[6rem] relative transition-colors duration-300 shrink-0 ${theme === 'dark' ? 'bg-slate-900 border-slate-800 shadow-md' : 'bg-white border-slate-200 shadow-sm'}`}>
+            
+            {/* LEFT BUTTON (Mobile/Tablet Only) */}
+            <button 
+              onClick={onToggleLeft}
+              className={`lg:hidden flex items-center justify-center w-10 h-10 rounded-md transition-colors border shadow-sm shrink-0 ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600'}`}
+              title="Open Instructions"
+            >
+              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
 
-        {/* MACHINE CODE CONTAINER (old dimensions) */}
-        <div className="flex-1 overflow-x-auto pb-2 flex justify-start lg:justify-center px-2">
-          {binaryBlocks.length > 0 ? (
-            <div className="flex gap-2 min-w-max mx-auto text-center font-mono relative">
-              {binaryBlocks.map((block, i) => {
-                const segmentValue = machineCodeSegments[i] || '';
-                const displayValue = /^[xX]+$/.test(segmentValue) ? '' : segmentValue;
-                
-                return (
-                  <div key={i} className="flex flex-col relative">
-                    {isPractice ? (
-                       <input 
-                         type="text"
-                         maxLength={block.bits.length}
-                         placeholder={'0'.repeat(block.bits.length)}
-                         value={displayValue} 
-                         onChange={(e) => handleSegmentChange(i, e.target.value)}
-                         className={`px-1 py-2 rounded-t border text-lg tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ${getBlockColor(block.color)} ${verificationState?.machineCode === false ? 'border-rose-500 shadow-[0_0_5px_rgba(244,63,94,0.3)]' : ''}`}
-                         style={{ width: `${Math.max(block.bits.length * 1.1 + 1, 3.5)}rem` }}
-                       />
-                    ) : (
-                       <span className={`px-3 py-2 rounded-t border text-lg tracking-widest ${getBlockColor(block.color)}`}>
-                         {block.bits}
-                       </span>
-                    )}
-                    <span className={`text-xs py-1 rounded-b ${theme === 'dark' ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500 border border-t-0 border-slate-200'}`}>
-                      {block.label}
-                    </span>
-                  </div>
-                );
-              })}
+            {/* MACHINE CODE CONTAINER (Fixed for Mobile!) */}
+            {/* Added min-w-0 and mx-2 so it neatly scrolls horizontally on phones without pushing buttons away */}
+            <div className="flex-1 min-w-0 mx-2 overflow-x-auto pb-2 flex justify-start lg:justify-center px-2">
+              {binaryBlocks.length > 0 ? (
+                <div className="flex gap-2 min-w-max mx-auto text-center font-mono relative">
+                  {binaryBlocks.map((block, i) => {
+                    const segmentValue = machineCodeSegments[i] || '';
+                    const displayValue = /^[xX]+$/.test(segmentValue) ? '' : segmentValue;
+                    
+                    return (
+                      <div key={i} className="flex flex-col relative shrink-0">
+                        {isPractice ? (
+                           <input 
+                             type="text"
+                             maxLength={block.bits.length}
+                             placeholder={'0'.repeat(block.bits.length)}
+                             value={displayValue} 
+                             onChange={(e) => handleSegmentChange(i, e.target.value)}
+                             className={`px-1 py-2 rounded-t border text-lg tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-purple-500 transition-colors ${getBlockColor(block.color)} ${verificationState?.machineCode === false ? 'border-rose-500 shadow-[0_0_5px_rgba(244,63,94,0.3)]' : ''}`}
+                             style={{ width: `${Math.max(block.bits.length * 1.1 + 1, 3.5)}rem` }}
+                           />
+                        ) : (
+                           <span className={`px-3 py-2 rounded-t border text-lg tracking-widest ${getBlockColor(block.color)}`}>
+                             {block.bits}
+                           </span>
+                        )}
+                        <span className={`text-xs py-1 rounded-b ${theme === 'dark' ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500 border border-t-0 border-slate-200'}`}>
+                          {block.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex w-full items-center justify-center min-w-max">
+                  <span className={`italic text-sm ${theme === 'dark' ? 'text-slate-600' : 'text-slate-400'}`}>
+                    {isPractice ? 'Enter a valid instruction on the left to build the machine code.' : 'Select an instruction to view binary breakdown.'}
+                  </span>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="flex w-full items-center justify-center">
-              <span className={`italic text-sm ${theme === 'dark' ? 'text-slate-600' : 'text-slate-400'}`}>
-                {isPractice ? 'Enter a valid instruction on the left to build the machine code.' : 'Select an instruction to view binary breakdown.'}
-              </span>
-            </div>
-          )}
-        </div>
 
-        {/* RIGHT SIDE BUTTONS */}
-        <div className="flex items-center gap-2 shrink-0">
-          
-          {/* EXPAND/RESTORE BUTTON (Desktop Only) */}
+            {/* RIGHT SIDE BUTTONS */}
+            <div className="flex items-center gap-2 shrink-0">
+              
+              {/* EXPAND BUTTON (Desktop Only) */}
+              <button 
+                onClick={onToggleExpand}
+                className={`hidden lg:flex items-center justify-center px-3 py-2 font-semibold text-sm rounded-md transition-colors border shadow-sm ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600'}`}
+                title="Expand Diagram"
+              >
+                <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                </svg>
+                Expand
+              </button>
+
+              {/* RIGHT BUTTON (Mobile/Tablet Only) */}
+              <button 
+                onClick={onToggleRight}
+                className={`lg:hidden flex items-center justify-center w-10 h-10 rounded-md transition-colors border shadow-sm shrink-0 ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600'}`}
+                title="Open Data Panel"
+              >
+                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </button>
+            </div>
+
+            {/* EXPECTED ANSWER POPUP (Tied to Header) */}
+            {isPractice && verificationState?.machineCode === false && (
+              <div className={`absolute -bottom-6 left-1/2 transform -translate-x-1/2 px-5 py-1.5 rounded-full border shadow-lg z-30 flex items-center gap-3 transition-all duration-300 animate-in slide-in-from-top-2 ${
+                theme === 'dark' 
+                  ? 'bg-rose-950/90 border-rose-500/50 text-rose-200 shadow-[0_4px_20px_rgba(225,29,72,0.3)] backdrop-blur-md' 
+                  : 'bg-white border-rose-300 text-rose-700 shadow-[0_4px_20px_rgba(225,29,72,0.15)]'
+              }`}>
+                <div className={`flex h-5 w-5 items-center justify-center rounded-full ${theme === 'dark' ? 'bg-rose-500/20 text-rose-400' : 'bg-rose-100 text-rose-600'}`}>
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Expected:</span>
+                  <span className="font-mono text-[13px] tracking-widest font-bold">
+                    {(() => {
+                      let raw = verificationState.correctMachineCode || '';
+                      if (!raw.includes(' ') && binaryBlocks.length > 0) {
+                        let formatted = [];
+                        let curr = 0;
+                        binaryBlocks.forEach(b => {
+                          formatted.push(raw.substring(curr, curr + b.bits.length));
+                          curr += b.bits.length;
+                        });
+                        return formatted.join(' ');
+                      }
+                      return raw;
+                    })()}
+                  </span>
+                </div>
+              </div>
+            )}
+            
+          </div>
+        )}
+
+      {/* FLOATING RESTORE BUTTON (ONLY WHEN EXPANDED) */}
+      {isExpanded && (
+        <div className="absolute top-4 right-4 z-50">
           <button 
             onClick={onToggleExpand}
-            className={`hidden lg:flex items-center justify-center px-3 py-2 font-semibold text-sm rounded-md transition-colors border shadow-sm ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600'}`}
-            title={isExpanded ? "Restore Sidebars" : "Expand Diagram"}
+            className={`flex items-center justify-center px-4 py-2.5 font-bold text-sm rounded-xl transition-all border shadow-lg hover:scale-105 ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-200' : 'bg-white hover:bg-slate-50 border-slate-300 text-slate-700'}`}
+            title="Restore Sidebars"
           >
-            {isExpanded ? (
-              <>
-                <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8h4V4m0 16v-4H4m16-4h-4v4m0-16v4h4" />
-                </svg>
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
-                </svg>
-              </>
-            )}
-          </button>
-
-          {/* RIGHT BUTTON (Mobile/Tablet Only) */}
-          <button 
-            onClick={onToggleRight}
-            className={`lg:hidden flex items-center justify-center w-10 h-10 rounded-md transition-colors border shadow-sm ${theme === 'dark' ? 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300' : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600'}`}
-            title="Open Data Panel"
-          >
-            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <svg className="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 8h4V4m0 16v-4H4m16-4h-4v4m0-16v4h4" />
+            </svg>
+            Restore
           </button>
         </div>
-
-        {isPractice && verificationState?.machineCode === false && (
-         <div className={`absolute -bottom-6 left-1/2 transform -translate-x-1/2 px-5 py-1.5 rounded-full border shadow-lg z-30 flex items-center gap-3 transition-all duration-300 animate-in slide-in-from-top-2 ${
-           theme === 'dark' 
-             ? 'bg-rose-950/90 border-rose-500/50 text-rose-200 shadow-[0_4px_20px_rgba(225,29,72,0.3)] backdrop-blur-md' 
-             : 'bg-white border-rose-300 text-rose-700 shadow-[0_4px_20px_rgba(225,29,72,0.15)]'
-         }`}>
-           <div className={`flex h-5 w-5 items-center justify-center rounded-full ${theme === 'dark' ? 'bg-rose-500/20 text-rose-400' : 'bg-rose-100 text-rose-600'}`}>
-             <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
-             </svg>
-           </div>
-           <div className="flex items-baseline gap-2">
-             <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Expected:</span>
-             <span className="font-mono text-[13px] tracking-widest font-bold">
-               {(() => {
-                 let raw = verificationState.correctMachineCode || '';
-                 if (!raw.includes(' ') && binaryBlocks.length > 0) {
-                   let formatted = [];
-                   let curr = 0;
-                   binaryBlocks.forEach(b => {
-                     formatted.push(raw.substring(curr, curr + b.bits.length));
-                     curr += b.bits.length;
-                   });
-                   return formatted.join(' ');
-                 }
-                 return raw;
-               })()}
-             </span>
-           </div>
-         </div>
-        )}
-      </div>
+      )}
 
       {/* PAN AND ZOOM WRAPPER */}
       <div 
@@ -416,7 +428,7 @@ export default function DiagramCanvas({ onToggleLeft, onToggleRight, onToggleExp
             transition: isDragging ? 'none' : 'transform 0.1s ease-out'
           }}
         >
-          <svg width="1100" height="631" viewBox="0 0 1100 631" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg width="1100" height="1000" viewBox="0 0 1100 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
             
             <g id="datapath_wires">
               <WirePath id="wire_1" type="fill" d="M37 383.768L27 377.995L27 389.542L37 383.768ZM14.0184 383.768L13.0184 383.768L13.0184 384.768L14.0184 384.768L14.0184 383.768ZM14.0184 1.00003L14.0184 2.55782e-05L13.0184 2.14608e-05L13.0184 1.00003L14.0184 1.00003ZM893.5 1.00003L894.5 1.00003L894.5 2.63759e-05L893.5 2.27786e-05L893.5 1.00003ZM893.5 72.9999L893.5 73.9999L894.5 73.9999L894.5 72.9999L893.5 72.9999ZM28 383.768L28 382.768L14.0183 382.768L14.0184 383.768L14.0184 384.768L28 384.768L28 383.768ZM14.0184 383.768L15.0184 383.768L15.0184 1.00004L14.0184 1.00003L13.0184 1.00003L13.0184 383.768L14.0184 383.768ZM14.0184 1.00003L14.0184 2.00004L893.5 2.00004L893.5 1.00003L893.5 2.27786e-05L14.0184 2.55782e-05L14.0184 1.00003ZM893.5 1.00003L892.5 1.00003L892.5 72.9999L893.5 72.9999L894.5 72.9999L894.5 1.00003L893.5 1.00003ZM893.5 72.9999L893.5 71.9999L875 71.9999L875 72.9999L875 73.9999L893.5 73.9999L893.5 72.9999Z" />

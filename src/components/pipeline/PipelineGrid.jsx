@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useDiagramStore } from '../store/diagramStore';
-import { SunIcon, MoonIcon } from './Icons';
+import { useDiagramStore } from '../../store/diagramStore';
+import { SunIcon, MoonIcon } from '../shared/Icons';
 import { DndContext, useDraggable, useDroppable, DragOverlay, useSensor, useSensors, MouseSensor, TouchSensor } from '@dnd-kit/core';
 import Xarrow, { Xwrapper } from 'react-xarrows'; 
 
@@ -157,7 +157,7 @@ const ScrollbarStyles = ({ theme }) => (
 
 // --- MAIN COMPONENT ---
 
-export default function Chapter4_2({ externalInstructions, setExternalInstructions, externalGrid, setExternalGrid, exerciseMode, setExerciseMode, onToggleSidebar }) {
+export default function PipelineGrid({ externalInstructions, setExternalInstructions, externalGrid, setExternalGrid, exerciseMode, setExerciseMode, onToggleSidebar }) {
   const { theme, toggleTheme, toggleMenu } = useDiagramStore();
   
   const instructions = externalInstructions?.length > 0 ? externalInstructions : INITIAL_INSTRUCTIONS;

@@ -1,5 +1,6 @@
 import React from 'react';
-import { useDiagramStore } from '../store/diagramStore';
+import { CHAPTERS } from '../../config/chapters.js';
+import { useDiagramStore } from '../../store/diagramStore';
 
 export default function NavigationMenu() {
   const { isMenuOpen, toggleMenu, currentChapter, setChapter, theme, setBugModalOpen } = useDiagramStore();
@@ -44,14 +45,7 @@ export default function NavigationMenu() {
           <hr className={`mb-2 ${theme === 'dark' ? 'border-slate-700' : 'border-slate-200'}`} />
 
           {/* CHAPTER LIST */}
-          {[
-            { id: 1, title: 'Chapter 1', subtitle: 'CPU Performance' },
-            { id: 2, title: 'Chapter 2', subtitle: 'MIPS Instructions' },
-            { id: 3, title: 'Chapter 3', subtitle: 'Pipeline Hazards' },
-            { id: 4.1, title: 'Chapter 4.1', subtitle: 'CPU Datapath Diagram' },
-            { id: 4.2, title: 'Chapter 4.2', subtitle: 'Pipeline Drag & Drop' },
-            { id: 5, title: 'Chapter 5', subtitle: 'Memory Hierarchy' }
-          ].map((chapter) => (
+          {CHAPTERS.map((chapter) => (
             <button 
               key={chapter.id}
               onClick={() => setChapter(chapter.id)}
@@ -61,7 +55,8 @@ export default function NavigationMenu() {
                   : theme === 'dark' ? 'hover:bg-slate-800' : 'hover:bg-slate-100'
               }`}
             >
-              {chapter.title}
+              <span>{chapter.shortTitle}</span>
+              <span className="block text-xs opacity-70">{chapter.subtitle}</span>
             </button>
           ))}
 

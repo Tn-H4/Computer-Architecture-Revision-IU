@@ -1,5 +1,5 @@
 import React from 'react';
-import { useDiagramStore } from '../store/diagramStore';
+import { useDiagramStore } from '../../store/diagramStore';
 
 export default function BugReportModal() {
   const { isBugModalOpen, setBugModalOpen, theme } = useDiagramStore();

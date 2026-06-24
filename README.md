@@ -57,28 +57,22 @@ Open your browser and navigate to http://localhost:5173
 ## Project Structure
 
 ```text
-cpu-visualizer/
-├── package.json
-├── README.md
-├── index.html                 # Vite entry point
-├── tailwind.config.js         # Tailwind CSS configuration
-├── vite.config.js             # Vite configuration
-├── src/
-│   ├── main.jsx               # React DOM rendering entry
-│   ├── index.css              # Tailwind CSS imports
-│   ├── App.jsx                # Main wrapper, handles global layout and routing between chapters
-│   ├── store/
-│   │   └── diagramStore.js    # Zustand store (theme, active chapter, user answers, verification)
-│   └── components/
-│       ├── LandingPage.jsx         # Welcoming page with chapter selection
-│       ├── NavigationMenu.jsx      # Sliding hamburger menu for chapter selection
-│       ├── Icons.jsx               # Reusable SVG components (Sun, Moon, Key, Trash, etc.)
-│       ├── BugReportModal.jsx      # Hidden popup for the Google Form bug reporter
-│       ├── DiagramCanvas.jsx       # The interactive SVG datapath and MiniPopup (Main Diagram)
-│       ├── InstructionPanel.jsx    # Controls for highlighting instructions and the verify buttons
-│       ├── Sidebar.jsx             # Right-side panel for worksheets, binary breakdown, and hints
-│       ├── Chapter1.jsx            # CPU Performance math formulas and calculations
-│       ├── Chapter2.jsx            # MIPS memory mapping and machine code translation
-│       ├── Chapter3.jsx            # Pipeline hazard logic checking (Static UI)
-│       ├── Chapter4_2.jsx          # Drag-and-drop @dnd-kit pipeline grid visualizer
-│       └── HazardSidebar.jsx       # Right-side panel for hazard question and explanation
+src/
+├── config/chapters.js          ← single source of truth for nav labels
+├── utils/
+│   ├── worksheetHelpers.js     ← pick, checkAnswer, checkHexValue
+│   ├── chapter1Engine.js … chapter5Engine.js
+│   ├── ieee754.js
+│   ├── pipelineHazardEngine.js
+│   └── instructionAnswers.js   ← shared answer keys (no duplication)
+├── components/
+│   ├── shared/                 ← Icons, WorksheetIcons, MathFraction, theme
+│   ├── layout/                 ← LandingPage, NavigationMenu, BugReportModal
+│   ├── chapters/
+│   │   ├── chapter1/Chapter1.jsx
+│   │   ├── chapter2/           ← Chapter2, RefTableModal, ColoredFields
+│   │   ├── chapter3/Chapter3.jsx
+│   │   └── chapter5/Chapter5.jsx
+│   ├── datapath/               ← Ch 4.1: DatapathLayout, DiagramCanvas, etc.
+│   └── pipeline/               ← Ch 4.2: PipelinePage, PipelineGrid, HazardSidebar
+└── App.jsx                     ← clean chapter router
